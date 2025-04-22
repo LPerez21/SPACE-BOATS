@@ -1,4 +1,4 @@
-# Phaser Full Stack Game
+# SPACE-BOATS Full Stack Game
 
 <div align="center">
 
