@@ -1,17 +1,36 @@
 // client/src/pages/DashboardPage.js
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Container, Typography, Button, Box } from '@mui/material';
+import {
+  Container,
+  Typography,
+  Button,
+  Box,
+  Table,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableBody
+} from '@mui/material';
 
-const DashboardPage = () => {
+export default function DashboardPage() {
   const navigate = useNavigate();
+  const [scores, setScores] = useState([]);
+
+  // Fetch leaderboard on mount
+  useEffect(() => {
+    fetch('http://localhost:8000/scores/leaderboard')
+      .then(res => res.json())
+      .then(data => setScores(data))
+      .catch(err => console.error('Failed loading leaderboard', err));
+  }, []);
 
   return (
     <Container maxWidth="md">
       <Box
         sx={{
-          mt: 10,
+          mt: 6,
           p: 4,
           border: '4px solid cyan',
           boxShadow: '0 0 20px cyan',
@@ -31,7 +50,6 @@ const DashboardPage = () => {
         >
           🚀 WELCOME, PILOT!
         </Typography>
-
         <Typography
           variant="body1"
           sx={{
@@ -89,8 +107,57 @@ const DashboardPage = () => {
           LOG OUT
         </Button>
       </Box>
+
+      {/* Leaderboard Section */}
+      <Box sx={{ mt: 6, textAlign: 'center' }}>
+        <Typography
+          variant="h5"
+          gutterBottom
+          sx={{
+            fontFamily: 'Press Start 2P',
+            color: '#00ffea',
+            textShadow: '0 0 5px #00ffea'
+          }}
+        >
+          HIGH SCORE LEADERBOARD
+        </Typography>
+
+        <Box sx={{ overflowX: 'auto' }}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                {['Rank', 'Player', 'Score'].map((header) => (
+                  <TableCell
+                    key={header}
+                    sx={{
+                      fontFamily: 'Press Start 2P',
+                      color: '#ffcc00',
+                      borderBottom: '2px solid #00ffea'
+                    }}
+                  >
+                    {header}
+                  </TableCell>
+                ))}
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {scores.map((row, idx) => (
+                <TableRow key={idx}>
+                  <TableCell sx={{ fontFamily: 'Press Start 2P', color: '#00ffea' }}>
+                    {idx + 1}
+                  </TableCell>
+                  <TableCell sx={{ fontFamily: 'Press Start 2P', color: '#00ffea' }}>
+                    {row.email}
+                  </TableCell>
+                  <TableCell sx={{ fontFamily: 'Press Start 2P', color: '#00ffea' }}>
+                    {row.score}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Box>
+      </Box>
     </Container>
   );
-};
-
-export default DashboardPage;
+}
