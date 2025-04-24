@@ -5,6 +5,7 @@
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
+    "@fontsource/press-start-2p": "^5.2.5",
     "@mui/material": "^7.0.2",
     "axios": "^1.8.4",
     "cra-template-pwa": "2.0.0",
