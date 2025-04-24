@@ -9,32 +9,30 @@ from datetime import datetime, timedelta
 
 app = FastAPI()
 
-# CORS so React (localhost:3000) can call your API
+# ─── CORS ────────────────────────────────────────────────────────────────────────
+# Allow all origins during development (so you can hit via localhost or LAN IP)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["*"],  # for production, lock this down to your frontend URL(s)
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# In-memory “databases”
+# ─── In-Memory “Databases” ───────────────────────────────────────────────────────
 fake_users_db: Dict[str, Dict] = {}
-scores: List[Dict] = []  # will store { email, score, timestamp }
+scores: List[Dict] = []
 
-# Password hashing
+# ─── Security Setup ──────────────────────────────────────────────────────────────
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# JWT config
 SECRET_KEY = "your-secret-key"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
-
-# ─── Pydantic Schemas ───────────────────────────────────────────────────────────
-
+# ─── Pydantic Schemas ────────────────────────────────────────────────────────────
 class UserCreate(BaseModel):
     email: EmailStr
     password: str
@@ -58,9 +56,7 @@ class ScoreOut(BaseModel):
     score: int
     timestamp: datetime
 
-
-# ─── Helper Functions ───────────────────────────────────────────────────────────
-
+# ─── Helper Functions ────────────────────────────────────────────────────────────
 def verify_password(plain: str, hashed: str) -> bool:
     return pwd_context.verify(plain, hashed)
 
@@ -82,9 +78,17 @@ def authenticate_user(email: str, password: str) -> Optional[Dict]:
         return user
     return None
 
+async def get_current_user(token: str = Depends(oauth2_scheme)) -> Dict:
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email: str = payload.get("sub")
+        if not email or email not in fake_users_db:
+            raise HTTPException(status_code=401, detail="Invalid authentication credentials")
+        return fake_users_db[email]
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid authentication credentials")
 
-# ─── Authentication & User Routes ────────────────────────────────────────────────
-
+# ─── Auth & User Routes ─────────────────────────────────────────────────────────
 @app.post("/signup", response_model=User, status_code=status.HTTP_201_CREATED)
 def signup(user: UserCreate):
     if user.email in fake_users_db:
@@ -97,7 +101,6 @@ def signup(user: UserCreate):
     }
     return User(**fake_users_db[user.email])
 
-
 @app.post("/login", response_model=Token)
 def login(form_data: OAuth2PasswordRequestForm = Depends()):
     user = authenticate_user(form_data.username, form_data.password)
@@ -106,32 +109,17 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()):
     token = create_access_token(data={"sub": user["email"]})
     return {"access_token": token, "token_type": "bearer"}
 
-
-async def get_current_user(token: str = Depends(oauth2_scheme)) -> Dict:
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        email: str = payload.get("sub")
-        if not email or email not in fake_users_db:
-            raise HTTPException(status_code=401, detail="Invalid authentication credentials")
-        return fake_users_db[email]
-    except JWTError:
-        raise HTTPException(status_code=401, detail="Invalid authentication credentials")
-
-
 @app.get("/profile/me", response_model=User)
 async def read_profile(current_user: Dict = Depends(get_current_user)):
     return User(**current_user)
 
 @app.put("/profile/me", response_model=User)
 async def update_profile(update: UserCreate, current_user: Dict = Depends(get_current_user)):
-    # Only update bio & favorite_ship
     current_user["bio"] = update.bio
     current_user["favorite_ship"] = update.favorite_ship
     return User(**current_user)
 
-
-# ─── Leaderboard Routes ──────────────────────────────────────────────────────────
-
+# ─── Leaderboard Routes ─────────────────────────────────────────────────────────
 @app.post("/scores", response_model=ScoreOut, status_code=status.HTTP_201_CREATED)
 async def submit_score(payload: ScoreIn, current_user: Dict = Depends(get_current_user)):
     entry = ScoreOut(
@@ -144,8 +132,5 @@ async def submit_score(payload: ScoreIn, current_user: Dict = Depends(get_curren
 
 @app.get("/scores/leaderboard", response_model=List[ScoreOut])
 async def get_leaderboard():
-    # Return top 10 scores
-    sorted_scores = sorted(scores, key=lambda s: s["score"], reverse=True)
-    top10 = sorted_scores[:10]
-    # Convert dicts back to Pydantic models for response
+    top10 = sorted(scores, key=lambda s: s["score"], reverse=True)[:10]
     return [ScoreOut(**s) for s in top10]

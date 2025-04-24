@@ -15,25 +15,34 @@ export default function LoginPage({ onLogin }) {
   const handleSubmit = async e => {
     e.preventDefault();
 
-    // Prepare x-www-form-urlencoded body
+    // Build form data
     const formBody = new URLSearchParams();
     formBody.append('username', form.email);
     formBody.append('password', form.password);
 
-    const res = await fetch('http://localhost:8000/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: formBody
-    });
+    try {
+      console.log('Logging in with:', form);
+      const res = await fetch('/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: formBody
+      });
 
-    const data = await res.json();
-    if (res.ok && data.access_token) {
-      // Save token
-      localStorage.setItem('token', data.access_token);
-      onLogin();                   // update App.js state
-      navigate('/dashboard');      // go to your arcade Dashboard
-    } else {
-      alert(data.detail || 'Login failed');
+      console.log('Response status:', res.status);
+
+      const data = await res.json();
+      console.log('Response body:', data);
+
+      if (res.ok && data.access_token) {
+        localStorage.setItem('token', data.access_token);
+        onLogin();
+        navigate('/dashboard');
+      } else {
+        alert(data.detail || 'Login failed');
+      }
+    } catch (err) {
+      console.error('Fetch error:', err);
+      alert('Network error: could not reach server.');
     }
   };
 
@@ -45,7 +54,11 @@ export default function LoginPage({ onLogin }) {
   return (
     <Container maxWidth="sm">
       <Box sx={{ mt: 8, textAlign: 'center' }}>
-        <Typography variant="h4" gutterBottom sx={{ fontFamily: 'Press Start 2P', color: '#00ffea' }}>
+        <Typography
+          variant="h4"
+          gutterBottom
+          sx={{ fontFamily: 'Press Start 2P', color: '#00ffea' }}
+        >
           SPACE BOATS LOGIN
         </Typography>
 
