@@ -18,12 +18,12 @@ export default function RegisterPage() {
     try {
       console.log('Registering with:', formData);
 
-      const res = await fetch('/signup', {
+      const res = await fetch('/api/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
-
+      
       console.log('Response status:', res.status);
 
       const data = await res.json();

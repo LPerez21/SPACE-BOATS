@@ -22,7 +22,7 @@ export default function LoginPage({ onLogin }) {
 
     try {
       console.log('Logging in with:', form);
-      const res = await fetch('/login', {
+      const res = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: formBody
