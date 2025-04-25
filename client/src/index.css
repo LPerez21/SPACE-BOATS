@@ -6,6 +6,15 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+body {
+  margin: 0;
+  font-family: 'Press Start 2P', cursive;
+  background-color: #000000;
+  color: #00ffea;
+  background-image: radial-gradient(circle, #222 1px, transparent 1px),
+                    radial-gradient(circle, #111 1px, transparent 1px);
+  background-position: 0 0, 25px 25px;
+  background-size: 50px 50px;
 
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
