@@ -1,31 +1,35 @@
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+body {
+  margin: 0;
+  font-family: 'Press Start 2P', cursive;
+  background-color: #000000;
+  color: #00ffea;
+  background-image: radial-gradient(circle, #222 1px, transparent 1px),
+                    radial-gradient(circle, #111 1px, transparent 1px);
+  background-position: 0 0, 25px 25px;
+  background-size: 50px 50px;
+}
+
 .App {
   text-align: center;
+  padding: 2rem;
+}
+
+.App-header {
+  background-color: rgba(0, 0, 0, 0.9);
+  border: 4px solid #00ffea;
+  box-shadow: 0 0 20px #00ffea;
+  border-radius: 12px;
+  padding: 2rem;
+  margin: 2rem auto;
+  max-width: 800px;
 }
 
 .App-logo {
   height: 40vmin;
   pointer-events: none;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
-
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
-}
-
-.App-link {
-  color: #61dafb;
+  animation: App-logo-spin infinite 10s linear;
 }
 
 @keyframes App-logo-spin {
@@ -35,4 +39,24 @@
   to {
     transform: rotate(360deg);
   }
+}
+
+button, .MuiButton-root {
+  font-family: 'Press Start 2P', cursive !important;
+  background-color: #00ffea !important;
+  color: #000 !important;
+  border: 2px solid #00ffea !important;
+  box-shadow: 0 0 10px #00ffea !important;
+  text-transform: none !important;
+}
+
+.MuiTextField-root {
+  background-color: #111 !important;
+  border-radius: 5px;
+  box-shadow: 0 0 5px #00ffea;
+}
+
+input {
+  color: #00ffea !important;
+  font-family: 'Press Start 2P', cursive;
 }
