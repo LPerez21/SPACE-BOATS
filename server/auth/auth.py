@@ -1,26 +1,27 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from ..schemas import UserCreate, UserLogin
-from ..jwt_handler import sign_jwt
+from passlib.context import CryptContext
+from datetime import datetime, timedelta
+from jose import jwt, JWTError
 
-router = APIRouter()
+SECRET_KEY = "space-boat-secret"
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 1 day
 
-# Temporary in-memory "DB"
-users_db = {}
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-@router.post("/register")
-async def register(user: UserCreate):
-    if user.email in users_db:
-        raise HTTPException(status_code=400, detail="Email already registered")
-    
-    # Save user
-    users_db[user.email] = {"email": user.email, "password": user.password}
-    return {"msg": "User created"}
+def hash_password(password: str) -> str:
+    return pwd_context.hash(password)
 
-@router.post("/login")
-async def login(user: UserLogin):
-    db_user = users_db.get(user.email)
-    if not db_user or db_user["password"] != user.password:
-        raise HTTPException(status_code=401, detail="Invalid credentials")
+def verify_password(password: str, hashed: str) -> bool:
+    return pwd_context.verify(password, hashed)
 
-    token = sign_jwt(user.email)
-    return token
+def create_access_token(data: dict, expires_delta: timedelta = None):
+    to_encode = data.copy()
+    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+def decode_token(token: str):
+    try:
+        return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+    except JWTError:
+        raise
