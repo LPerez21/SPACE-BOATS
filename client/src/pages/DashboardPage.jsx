@@ -59,7 +59,7 @@ export default function DashboardPage() {
             textShadow: '0 0 3px #ffcc00'
           }}
         >
-          Ready to command your Space Boat?
+          The fate of the fleet rides with you. Are you ready to take command?
         </Typography>
 
         <Button
