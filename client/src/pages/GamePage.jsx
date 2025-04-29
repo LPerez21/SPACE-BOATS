@@ -1,6 +1,15 @@
 import React, { useRef, useEffect } from 'react';
 import { Container, Typography, Box, Button } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
+import enemy1Img from '/crab.png';
+import enemy2Img from '/jellyfish.png';
+import enemy3Img from '/octopus.png';
+import enemy4Img from '/squid.png';
+import enemy5Img from '/starfish.png';
+import enemy6Img from '/shrimp.png';
+import enemy7Img from '/eel.png';
+
+
 
 export default function GamePage() {
   const canvasRef = useRef(null);
@@ -12,6 +21,27 @@ export default function GamePage() {
     let frame    = 0;
     let score    = 0;
     let animationId;
+
+    const shipImg = new Image();
+    shipImg.src = '/ship.png'
+    let shipImageLoaded = false;
+    shipImg.onload = () => {
+    shipImageLoaded = true;
+};
+    // Load enemy images
+    const enemyImages = [enemy1Img, enemy2Img, enemy3Img, enemy4Img, enemy5Img, enemy6Img, enemy7Img].map(src => {
+      const img = new Image();
+      img.src = src;
+      return img;
+    });
+    let enemyImageLoaded = false;
+    enemyImages.forEach(img => {
+      img.onload = () => {
+        enemyImageLoaded = true;
+      };
+    });
+
+
 
     // Resize canvas
     const resize = () => {
@@ -33,9 +63,9 @@ export default function GamePage() {
     const ship = {
       x: canvas.width / 2,
       y: canvas.height - 30,
-      w: 40,
-      h: 20,
-      speed: 5
+      w: 70, // wider
+      h: 70, // taller
+      speed: 7
     };
 
     // Bullets & enemies
@@ -80,24 +110,45 @@ export default function GamePage() {
       });
 
       // 3) Spawn enemies every 90 frames (~1.5s at 60fps)
+      // if (frame % 90 === 0) {
+      //   enemies.push({
+      //     x: Math.random() * (canvas.width - 30) + 15,
+      //     y: -20,
+      //     size: 20,
+      //     speed: Math.random() * 1 + 1
+      //   });
+      // }
       if (frame % 90 === 0) {
+        const typeIndex = Math.floor(Math.random() * enemyImages.length);
         enemies.push({
           x: Math.random() * (canvas.width - 30) + 15,
           y: -20,
-          size: 20,
-          speed: Math.random() * 1 + 1
+          size: 40, // or adjust per enemy
+          speed: Math.random() * 1 + 1,
+          img: enemyImages[typeIndex],
         });
       }
+      
 
       // 4) Update & draw enemies
-      ctx.fillStyle = 'red';
+      // ctx.fillStyle = 'red';
+      // for (let i = enemies.length - 1; i >= 0; i--) {
+      //   const e = enemies[i];
+      //   e.y += e.speed;
+      //   // Draw as square
+      //   ctx.fillRect(e.x - e.size/2, e.y - e.size/2, e.size, e.size);
       for (let i = enemies.length - 1; i >= 0; i--) {
         const e = enemies[i];
         e.y += e.speed;
-        // Draw as square
-        ctx.fillRect(e.x - e.size/2, e.y - e.size/2, e.size, e.size);
-        // Remove if off-screen
-        if (e.y - e.size/2 > canvas.height) enemies.splice(i, 1);
+        ctx.drawImage(
+          e.img,
+          e.x - e.size / 2,
+          e.y - e.size / 2,
+          e.size,
+          e.size
+        );
+      
+        if (e.y - e.size / 2 > canvas.height) enemies.splice(i, 1);
       }
 
       // 5) Move & draw ship
@@ -105,13 +156,34 @@ export default function GamePage() {
       if (keys.right) ship.x += ship.speed;
       ship.x = Math.max(ship.w/2, Math.min(canvas.width - ship.w/2, ship.x));
 
-      ctx.fillStyle = 'lime';
-      ctx.beginPath();
-      ctx.moveTo(ship.x, ship.y - ship.h/2);
-      ctx.lineTo(ship.x - ship.w/2, ship.y + ship.h/2);
-      ctx.lineTo(ship.x + ship.w/2, ship.y + ship.h/2);
-      ctx.closePath();
-      ctx.fill();
+      // ctx.fillStyle = 'lime';
+      // ctx.beginPath();
+      // ctx.moveTo(ship.x, ship.y - ship.h/2);
+      // ctx.lineTo(ship.x - ship.w/2, ship.y + ship.h/2);
+      // ctx.lineTo(ship.x + ship.w/2, ship.y + ship.h/2);
+      // ctx.closePath();
+      // ctx.fill();
+
+      if (shipImageLoaded) {
+        ctx.drawImage(
+          shipImg,
+          ship.x - ship.w / 2,
+          ship.y - ship.h / 2,
+          ship.w,
+          ship.h
+        );
+      } else {
+        // Fallback triangle while image loads
+        ctx.fillStyle = 'lime';
+        ctx.beginPath();
+        ctx.moveTo(ship.x, ship.y - ship.h / 2);
+        ctx.lineTo(ship.x - ship.w / 2, ship.y + ship.h / 2);
+        ctx.lineTo(ship.x + ship.w / 2, ship.y + ship.h / 2);
+        ctx.closePath();
+        ctx.fill();
+      }
+      
+      
 
       // 6) Update & draw bullets, check collisions
       ctx.fillStyle = 'cyan';
