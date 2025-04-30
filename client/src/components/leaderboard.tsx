@@ -3,10 +3,9 @@ import * as React from 'react'
 
 interface Props {
     scores: any;
-    titleHeading: string;
 }
 
-const Leaderboard: React.FC<Props> = ({ scores, titleHeading }: Props) => {
+const Leaderboard: React.FC<Props> = ({ scores }: Props) => {
     return (
         <Box sx={{ mt: 6, textAlign: 'center' }}>
             <Typography
@@ -18,7 +17,7 @@ const Leaderboard: React.FC<Props> = ({ scores, titleHeading }: Props) => {
                     textShadow: '0 0 5px #00ffea'
                 }}
             >
-                {titleHeading}
+                Leaderboard
             </Typography>
             <Box sx={{ overflowX: 'auto' }}>
                 <Table>

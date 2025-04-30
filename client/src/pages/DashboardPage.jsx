@@ -20,7 +20,7 @@ export default function DashboardPage() {
   return (
     <Container maxWidth="md">
       <DashboardHeading />
-      <Leaderboard scores={scores} titleHeading={'Dashboard Leaderboard'} />
+      <Leaderboard scores={scores} />
     </Container>
   );
 }
