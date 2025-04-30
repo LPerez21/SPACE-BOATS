@@ -7,7 +7,7 @@ from pydantic import BaseModel, EmailStr
 from typing import Optional, Dict, List
 from datetime import datetime, timedelta
 from bson import ObjectId
-from db import test_connection, users_collection
+from db import test_connection, users_collection, scores_collection
 
 
 app = FastAPI()
@@ -145,10 +145,11 @@ async def submit_score(payload: ScoreIn, current_user: Dict = Depends(get_curren
         score=payload.score,
         timestamp=datetime.utcnow()
     )
-    scores.append(entry.dict())
-    return entry
+    await scores_collection.insert_one(entry)
+    return ScoreOut(**entry)
 
 @app.get("/scores/leaderboard", response_model=List[ScoreOut])
 async def get_leaderboard():
-    top10 = sorted(scores, key=lambda s: s["score"], reverse=True)[:10]
-    return [ScoreOut(**s) for s in top10]
+    cursor = scores_collection.find().sort("score", -1).limit(10)
+    top10 = await cursor.to_list(length=10)
+    return [ScoreOut(**score) for score in top10]
