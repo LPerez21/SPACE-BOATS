@@ -11,6 +11,10 @@ import DashboardPage    from './pages/DashboardPage';
 import GamePage         from './pages/GamePage';
 import LeaderboardPage  from './pages/LeaderboardPage';
 
+import SinglePlayer     from './pages/SinglePlayer';
+import CoOp             from './pages/Coop';        
+import Duel             from './pages/Duel';
+
 function App() {
   const [loggedIn, setLoggedIn] = useState(!!localStorage.getItem('token'));
 
@@ -43,6 +47,37 @@ function App() {
               : <Navigate to="/login" replace />
           }
         />
+
+        {/* Game Mode Route Start */}
+
+        <Route
+          path="/singleplayer"
+          element={
+            loggedIn
+              ? <SinglePlayer />
+              : <Navigate to="/login" replace />
+          }
+        />
+
+        <Route
+          path="/coop"
+          element={
+            loggedIn
+              ? <CoOp />
+              : <Navigate to="/login" replace />
+          }
+        />
+
+        <Route
+          path="/duel"
+          element={
+            loggedIn
+              ? <Duel />
+              : <Navigate to="/login" replace />
+          }
+        />
+
+        {/* Game Mode Route End */}
 
         <Route path="/leaderboard" element={<LeaderboardPage />} />
         <Route path="/register"    element={<RegisterPage />} />
