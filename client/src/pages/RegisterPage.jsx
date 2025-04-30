@@ -19,7 +19,7 @@ export default function RegisterPage() {
     try {
       console.log('Registering with:', formData);
 
-      const res = await fetch('/api/signup', {
+      const res = await fetch('api/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
@@ -33,8 +33,8 @@ export default function RegisterPage() {
       if (res.ok) {
         localStorage.setItem('userEmail', formData.email);
 
-        alert('Registration successful! Please log in.');
-        navigate('/login');
+        alert('Registration successful! Welcome Aboard.');
+        navigate('/dashboard');
       } else {
         alert(`Registration failed: ${data.detail || 'Unknown error'}`);
       }
