@@ -127,7 +127,7 @@ export default function GameData({ isCoOp = false, controls = null }) {
         if (star.y > canvas.height) star.y = 0;
       });
 
-      if (frame % 90 === 0) {
+      if (frame % 180 === 0) {
         const typeIndex = Math.floor(Math.random() * enemyImages.length);
         enemies.push({
           x: Math.random() * (canvas.width - 30) + 15,
