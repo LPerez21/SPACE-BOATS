@@ -14,7 +14,7 @@ import WelcomePage      from './pages/WelcomePage';
 function App() {
   const [loggedIn, setLoggedIn] = useState(!!localStorage.getItem('token'));
 
-  import SinglePlayer     from './pages/SinglePlayer';
+import SinglePlayer     from './pages/SinglePlayer';
 import CoOp             from './pages/Coop';        
 import Duel             from './pages/Duel';
 
@@ -89,6 +89,7 @@ function App() {
       <AppContent loggedIn={loggedIn} setLoggedIn={setLoggedIn} />
     </Router>
   );
+}
 }
 
 export default App;
