@@ -6,6 +6,7 @@ from jose import JWTError, jwt
 from pydantic import BaseModel, EmailStr
 from typing import Optional, Dict, List
 from datetime import datetime, timedelta
+from db import users_collection, scores_collection
 
 app = FastAPI()
 
@@ -20,7 +21,10 @@ app.add_middleware(
 )
 
 # ─── In-Memory “Databases” ───────────────────────────────────────────────────────
-fake_users_db: Dict[str, Dict] = {}
+# fake_users_db: Dict[str, Dict] = {}
+users_collection = {}
+scores_collection = {}
+# In-memory list to store scores
 scores: List[Dict] = []
 
 # ─── Security Setup ──────────────────────────────────────────────────────────────
@@ -69,8 +73,15 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
-def get_user(email: str) -> Optional[Dict]:
-    return fake_users_db.get(email)
+# Fetch user by email
+async def get_user(email: str) -> Optional[Dict]:
+    user = await users_collection.find_one({"email": email})
+    return user
+
+# Create a new user
+async def create_user(user_data: Dict) -> Dict:
+    await users_collection.insert_one(user_data)
+    return user_data
 
 def authenticate_user(email: str, password: str) -> Optional[Dict]:
     user = get_user(email)
@@ -82,24 +93,29 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> Dict:
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         email: str = payload.get("sub")
-        if not email or email not in fake_users_db:
+        if not email:
             raise HTTPException(status_code=401, detail="Invalid authentication credentials")
-        return fake_users_db[email]
+        user = await get_user(email)
+        if not user:
+            raise HTTPException(status_code=401, detail="Invalid authentication credentials")
+        return user
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid authentication credentials")
 
 # ─── Auth & User Routes ─────────────────────────────────────────────────────────
 @app.post("/signup", response_model=User, status_code=status.HTTP_201_CREATED)
-def signup(user: UserCreate):
-    if user.email in fake_users_db:
+async def signup(user: UserCreate):
+    existing_user = await get_user(user.email)
+    if existing_user:
         raise HTTPException(status_code=400, detail="Email already taken")
-    fake_users_db[user.email] = {
+    user_data[user.email] = {
         "email": user.email,
         "hashed_password": get_password_hash(user.password),
         "bio": user.bio,
         "favorite_ship": user.favorite_ship
     }
-    return User(**fake_users_db[user.email])
+    await create_user(user_data)
+    return User(**user_data)
 
 @app.post("/login", response_model=Token)
 def login(form_data: OAuth2PasswordRequestForm = Depends()):
@@ -115,9 +131,12 @@ async def read_profile(current_user: Dict = Depends(get_current_user)):
 
 @app.put("/profile/me", response_model=User)
 async def update_profile(update: UserCreate, current_user: Dict = Depends(get_current_user)):
-    current_user["bio"] = update.bio
-    current_user["favorite_ship"] = update.favorite_ship
-    return User(**current_user)
+    await users_collection.update_one(
+        {"email": current_user["email"]},
+        {"$set": {"bio": update.bio, "favorite_ship": update.favorite_ship}}
+    )
+    updated_user = await get_user(current_user["email"])
+    return User(**updated_user)
 
 # ─── Leaderboard Routes ─────────────────────────────────────────────────────────
 @app.post("/scores", response_model=ScoreOut, status_code=status.HTTP_201_CREATED)
@@ -127,10 +146,10 @@ async def submit_score(payload: ScoreIn, current_user: Dict = Depends(get_curren
         score=payload.score,
         timestamp=datetime.utcnow()
     )
-    scores.append(entry.dict())
-    return entry
+    await scores_collection.insert_one(entry)
+    return ScoreOut(**entry)
 
 @app.get("/scores/leaderboard", response_model=List[ScoreOut])
 async def get_leaderboard():
-    top10 = sorted(scores, key=lambda s: s["score"], reverse=True)[:10]
-    return [ScoreOut(**s) for s in top10]
+    top10 = await scores_collection.find().sort("score", -1).limit(10).to_list(10)
+    return [ScoreOut(**score) for score in top10]
