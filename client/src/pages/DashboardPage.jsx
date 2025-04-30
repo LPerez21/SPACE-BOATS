@@ -2,8 +2,8 @@
 
 import React, { useEffect, useState } from 'react';
 import { Container } from '@mui/material';
-import Leaderboard from '../components/leaderboard';
-import DashboardHeading from '../components/dashboardHeading';
+import Leaderboard from '../components/Leaderboard';
+import DashboardHeading from '../components/DashboardHeading';
 
 export default function DashboardPage() {
 
