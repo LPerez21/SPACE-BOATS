@@ -3,9 +3,10 @@ from pymongo import MongoClient
 
 # Import the MongoDB URI and database name from your config file
 from config import MONGODB_URI, DB_NAME
+from motor.motor_asyncio import AsyncIOMotorClient 
 
 # Create a MongoDB client using the connection URI
-client = MongoClient(MONGODB_URI)
+client = AsyncIOMotorClient(MONGODB_URI)
 
 # Connect to the specific database using the name from the config
 db = client[DB_NAME]
@@ -16,10 +17,10 @@ users_collection = db["users"]
 # Reference the "scores" collection in the database
 scores_collection = db["scores"]
 
-def test_connection():
+async def test_connection():
     try:
         # Attempt to retrieve the server information
-        client.admin.command('ping')
+        await client.admin.command('ping')
         print("Successfully connected to MongoDB!")
     except Exception as e:
         print("Failed to connect to MongoDB:", e)

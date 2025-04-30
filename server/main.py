@@ -6,6 +6,7 @@ from jose import JWTError, jwt
 from pydantic import BaseModel, EmailStr
 from typing import Optional, Dict, List
 from datetime import datetime, timedelta
+from bson import ObjectId
 from db import test_connection, users_collection
 
 
@@ -23,8 +24,8 @@ app.add_middleware(
 
 # ─── In-Memory “Databases” ───────────────────────────────────────────────────────
 # fake_users_db: Dict[str, Dict] = {}
-users_collection: Dict[str, Dict] = {}
-scores: List[Dict] = []
+# users_collection: Dict[str, Dict] = {}
+# scores: List[Dict] = []
 
 # ─── Security Setup ──────────────────────────────────────────────────────────────
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -72,11 +73,11 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
-def get_user(email: str) -> Optional[Dict]:
-    return users_collection.get(email)
+async def get_user(email: str) -> Optional[Dict]:
+    return await users_collection.find_one({"email": email})
 
-def authenticate_user(email: str, password: str) -> Optional[Dict]:
-    user = get_user(email)
+async def authenticate_user(email: str, password: str) -> Optional[Dict]:
+    user = await users_collection.find_one({"email": email})
     if user and verify_password(password, user["hashed_password"]):
         return user
     return None
@@ -94,27 +95,32 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> Dict:
 @app.on_event("startup")
 async def startup_event():
     print("Starting the application...")
-    test_connection()  # Run the test query to verify MongoDB connection
+    await test_connection()  # Run the test query to verify MongoDB connection
 
 # ─── Auth & User Routes ─────────────────────────────────────────────────────────
 @app.post("/signup", response_model=User, status_code=status.HTTP_201_CREATED)
-def signup(user: UserCreate):
-    if user.email in users_collection:
+async def signup(user: UserCreate):
+    existing_user = await users_collection.find_one({"email": user.email})
+    
+    if existing_user:
         raise HTTPException(status_code=400, detail="Email already taken")
     
-    users_collection[user.email] = {
+    user_doc = {
         "email": user.email,
         "hashed_password": get_password_hash(user.password),
         "bio": user.bio,
         "favorite_ship": user.favorite_ship
     }
 
+    # Insert the user into the database
+    result = await users_collection.insert_one(user_doc)
+    user_doc["_id"] = str(result.inserted_id)  # Convert ObjectId to string for JSON serialization
 
-    return User(**users_collection[user.email])
+    return User(bio=user_doc["bio"], favorite_ship=user_doc["favorite_ship"])
 
 @app.post("/login", response_model=Token)
-def login(form_data: OAuth2PasswordRequestForm = Depends()):
-    user = authenticate_user(form_data.username, form_data.password)
+async def login(form_data: OAuth2PasswordRequestForm = Depends()):
+    user = await authenticate_user(form_data.username, form_data.password)
     if not user:
         raise HTTPException(status_code=400, detail="Incorrect email or password")
     token = create_access_token(data={"sub": user["email"]})
@@ -129,7 +135,6 @@ async def update_profile(update: User, current_user: Dict = Depends(get_current_
     current_user["bio"] = update.bio
     current_user["favorite_ship"] = update.favorite_ship
 
-    
     return User(**current_user)
 
 # ─── Leaderboard Routes ─────────────────────────────────────────────────────────
