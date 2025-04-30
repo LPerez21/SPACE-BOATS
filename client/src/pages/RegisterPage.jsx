@@ -31,6 +31,8 @@ export default function RegisterPage() {
       console.log('Response body:', data);
 
       if (res.ok) {
+        localStorage.setItem('userEmail', formData.email);
+
         alert('Registration successful! Please log in.');
         navigate('/login');
       } else {
