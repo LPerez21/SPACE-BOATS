@@ -20,7 +20,7 @@ export default function LeaderboardPage() {
 
   return (
     <Container maxWidth="sm" sx={{ mt: 8, textAlign: 'center' }}>
-      <Leaderboard scores={scores} titleHeading='Leaderboard Leaderboard'/>
+      <Leaderboard scores={scores} />
       <Button
         variant="outlined"
         sx={{
