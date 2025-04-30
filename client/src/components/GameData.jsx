@@ -72,6 +72,7 @@ export default function GameData({ isCoOp = false, controls = null }) {
         keys: { left: false, right: false, shoot: false },
         controls: controls?.player1 || { left: 'KeyA', right: 'KeyD', shoot: 'Space' }, // Default Player 1 controls
         bullets: [],
+        health: 100,
       },
     ];
 
@@ -86,6 +87,7 @@ export default function GameData({ isCoOp = false, controls = null }) {
         keys: { left: false, right: false, shoot: false },
         controls: controls?.player2 || { left: 'ArrowLeft', right: 'ArrowRight', shoot: 'Slash' }, // Default Player 2 controls
         bullets: [],
+        health: 100,
       });
     }
 
@@ -127,6 +129,14 @@ export default function GameData({ isCoOp = false, controls = null }) {
         if (star.y > canvas.height) star.y = 0;
       });
 
+      // Display player health
+      ships.forEach((ship, index) => {
+        console.log(`P${index + 1} Health: ${ship.health}`); // Debugging
+        ctx.fillStyle = 'red';
+        ctx.font = '16px Press Start 2P, Arial';
+        ctx.fillText(`P${index + 1} Health: ${ship.health}`, 10, 50 + index * 20);
+      });
+
       if (frame % 90 === 0) {
         const typeIndex = Math.floor(Math.random() * enemyImages.length);
         enemies.push({
@@ -143,14 +153,35 @@ export default function GameData({ isCoOp = false, controls = null }) {
         const e = enemies[i];
         e.y += e.speed;
 
-      // Draw enemy image
-      if (e.img) {
-        ctx.drawImage(e.img, e.x - e.size / 2, e.y - e.size / 2, e.size, e.size);
-      }
+        // Draw enemy image
+        if (e.img) {
+          ctx.drawImage(e.img, e.x - e.size / 2, e.y - e.size / 2, e.size, e.size);
+        }
+        // Check for collisions with ships
+        ships.forEach((ship) => {
+          if (
+            e.x > ship.x - ship.w / 2 &&
+            e.x < ship.x + ship.w / 2 &&
+            e.y > ship.y - ship.h / 2 &&
+            e.y < ship.y + ship.h / 2
+          ) {
+            ship.health -= 20; // Reduce ship health
+            enemies.splice(i, 1); // Remove enemy
+          }
+        });
 
-      // Remove off-screen enemies
-      if (e.y - e.size / 2 > canvas.height) enemies.splice(i, 1);
-    }
+        // Check if any player's health is zero
+        if (ships.some((ship) => ship.health <= 0)) {
+          cancelAnimationFrame(animationId);
+          ctx.fillStyle = 'red';
+          ctx.font = '24px Press Start 2P';
+          ctx.fillText('Game Over', canvas.width / 2 - 100, canvas.height / 2);
+          return; // Stop the game loop
+        }
+
+        // Remove off-screen enemies
+        if (e.y - e.size / 2 > canvas.height) enemies.splice(i, 1);
+      }
 
       // Move & draw ships
       ships.forEach((ship, index) => {
@@ -158,20 +189,20 @@ export default function GameData({ isCoOp = false, controls = null }) {
         if (ship.keys.right) ship.x += ship.speed;
         ship.x = Math.max(ship.w / 2, Math.min(canvas.width - ship.w / 2, ship.x));
 
-      // Draw ship image
-      if (shipImageLoaded) {
-        const shipImage = index === 0 ? shipImg : ship2Img; // Use ship.png for Player 1, ship2.png for Player 2
-        ctx.drawImage(shipImage, ship.x - ship.w / 2, ship.y - ship.h / 2, ship.w, ship.h);
-      } else {
-      // Fallback triangle while image loads
-        ctx.fillStyle = ship.color;
-        ctx.beginPath();
-        ctx.moveTo(ship.x, ship.y - ship.h / 2);
-        ctx.lineTo(ship.x - ship.w / 2, ship.y + ship.h / 2);
-        ctx.lineTo(ship.x + ship.w / 2, ship.y + ship.h / 2);
-        ctx.closePath();
-        ctx.fill();
-      }
+        // Draw ship image
+        if (shipImageLoaded) {
+          const shipImage = index === 0 ? shipImg : ship2Img; // Use ship.png for Player 1, ship2.png for Player 2
+          ctx.drawImage(shipImage, ship.x - ship.w / 2, ship.y - ship.h / 2, ship.w, ship.h);
+        } else {
+          // Fallback triangle while image loads
+          ctx.fillStyle = ship.color;
+          ctx.beginPath();
+          ctx.moveTo(ship.x, ship.y - ship.h / 2);
+          ctx.lineTo(ship.x - ship.w / 2, ship.y + ship.h / 2);
+          ctx.lineTo(ship.x + ship.w / 2, ship.y + ship.h / 2);
+          ctx.closePath();
+          ctx.fill();
+        }
 
         // Shoot bullets
         if (ship.keys.shoot) {
@@ -194,7 +225,7 @@ export default function GameData({ isCoOp = false, controls = null }) {
             ship.bullets.splice(bi, 1);
             continue;
           }
-          
+
           ctx.fillRect(b.x - b.r / 2, b.y - b.r / 2, b.r, b.r);
 
           for (let ei = enemies.length - 1; ei >= 0; ei--) {
