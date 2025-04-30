@@ -6,6 +6,7 @@ from jose import JWTError, jwt
 from pydantic import BaseModel, EmailStr
 from typing import Optional, Dict, List
 from datetime import datetime, timedelta
+from db import test_connection
 
 app = FastAPI()
 
@@ -40,7 +41,7 @@ class UserCreate(BaseModel):
     favorite_ship: Optional[str] = None
 
 class User(BaseModel):
-    email: EmailStr
+    # email: EmailStr
     bio: Optional[str]
     favorite_ship: Optional[str]
 
@@ -88,6 +89,11 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> Dict:
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid authentication credentials")
 
+@app.on_event("startup")
+async def startup_event():
+    print("Starting the application...")
+    test_connection()  # Run the test query to verify MongoDB connection
+
 # ─── Auth & User Routes ─────────────────────────────────────────────────────────
 @app.post("/signup", response_model=User, status_code=status.HTTP_201_CREATED)
 def signup(user: UserCreate):
@@ -114,7 +120,7 @@ async def read_profile(current_user: Dict = Depends(get_current_user)):
     return User(**current_user)
 
 @app.put("/profile/me", response_model=User)
-async def update_profile(update: UserCreate, current_user: Dict = Depends(get_current_user)):
+async def update_profile(update: User, current_user: Dict = Depends(get_current_user)):
     current_user["bio"] = update.bio
     current_user["favorite_ship"] = update.favorite_ship
     return User(**current_user)

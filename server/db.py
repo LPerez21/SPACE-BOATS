@@ -15,3 +15,11 @@ users_collection = db["users"]
 
 # Reference the "scores" collection in the database
 scores_collection = db["scores"]
+
+def test_connection():
+    try:
+        # Attempt to retrieve the server information
+        client.admin.command('ping')
+        print("Successfully connected to MongoDB!")
+    except Exception as e:
+        print("Failed to connect to MongoDB:", e)

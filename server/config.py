@@ -3,7 +3,6 @@ from dotenv import load_dotenv
 
 # Load environment variables from .env
 load_dotenv()
-
 # MongoDB Configuration
 MONGODB_URI = os.getenv("MONGODB_URI")
 DB_NAME = os.getenv("DB_NAME")
