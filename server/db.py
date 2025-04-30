@@ -17,6 +17,10 @@ users_collection = db["users"]
 # Reference the "scores" collection in the database
 scores_collection = db["scores"]
 
+async def setup_indexes():
+    await scores_collection.create_index("email")
+    await scores_collection.create_index([("score", -1)])
+
 async def test_connection():
     try:
         # Attempt to retrieve the server information

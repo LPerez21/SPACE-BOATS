@@ -7,7 +7,7 @@ from pydantic import BaseModel, EmailStr
 from typing import Optional, Dict, List
 from datetime import datetime, timedelta
 from bson import ObjectId
-from db import test_connection, users_collection, scores_collection
+from db import test_connection, setup_indexes, users_collection, scores_collection
 
 
 app = FastAPI()
@@ -86,9 +86,14 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> Dict:
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         email: str = payload.get("sub")
-        if not email or email not in users_collection:
+        if not email:
             raise HTTPException(status_code=401, detail="Invalid authentication credentials")
-        return users_collection[email]
+        
+        user = await users_collection.find_one({"email": email})
+        if not user:
+            raise HTTPException(status_code=401, detail="Invalid authentication credentials")
+        
+        return user
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid authentication credentials")
 
@@ -96,7 +101,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> Dict:
 async def startup_event():
     print("Starting the application...")
     await test_connection()  # Run the test query to verify MongoDB connection
-
+    await setup_indexes()
 # ─── Auth & User Routes ─────────────────────────────────────────────────────────
 @app.post("/signup", response_model=User, status_code=status.HTTP_201_CREATED)
 async def signup(user: UserCreate):
@@ -140,13 +145,14 @@ async def update_profile(update: User, current_user: Dict = Depends(get_current_
 # ─── Leaderboard Routes ─────────────────────────────────────────────────────────
 @app.post("/scores", response_model=ScoreOut, status_code=status.HTTP_201_CREATED)
 async def submit_score(payload: ScoreIn, current_user: Dict = Depends(get_current_user)):
-    entry = ScoreOut(
-        email=current_user["email"],
-        score=payload.score,
-        timestamp=datetime.utcnow()
-    )
-    await scores_collection.insert_one(entry)
-    return ScoreOut(**entry)
+    entry = {
+        "email": current_user["email"],
+        "score": payload.score,
+        "timestamp": datetime.utcnow()
+    }
+    result = await scores_collection.insert_one(entry)
+    entry["_id"] = str(result.inserted_id)  # Convert ObjectId to string for JSON serialization
+    return entry
 
 @app.get("/scores/leaderboard", response_model=List[ScoreOut])
 async def get_leaderboard():

@@ -50,6 +50,9 @@ const Leaderboard: React.FC<Props> = ({ scores, titleHeading }: Props) => {
                                 <TableCell sx={{ fontFamily: 'Press Start 2P', color: '#00ffea' }}>
                                     {row.score}
                                 </TableCell>
+                                <TableCell sx={{ fontFamily: 'Press Start 2P', color: '#00ffea' }}>
+                                    {new Date(row.timestamp).toLocaleString()}
+                                </TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
