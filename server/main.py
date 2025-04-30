@@ -6,7 +6,8 @@ from jose import JWTError, jwt
 from pydantic import BaseModel, EmailStr
 from typing import Optional, Dict, List
 from datetime import datetime, timedelta
-from db import test_connection
+from db import test_connection, users_collection
+
 
 app = FastAPI()
 
@@ -21,7 +22,8 @@ app.add_middleware(
 )
 
 # ─── In-Memory “Databases” ───────────────────────────────────────────────────────
-fake_users_db: Dict[str, Dict] = {}
+# fake_users_db: Dict[str, Dict] = {}
+users_collection: Dict[str, Dict] = {}
 scores: List[Dict] = []
 
 # ─── Security Setup ──────────────────────────────────────────────────────────────
@@ -71,7 +73,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 def get_user(email: str) -> Optional[Dict]:
-    return fake_users_db.get(email)
+    return users_collection.get(email)
 
 def authenticate_user(email: str, password: str) -> Optional[Dict]:
     user = get_user(email)
@@ -83,9 +85,9 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> Dict:
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         email: str = payload.get("sub")
-        if not email or email not in fake_users_db:
+        if not email or email not in users_collection:
             raise HTTPException(status_code=401, detail="Invalid authentication credentials")
-        return fake_users_db[email]
+        return users_collection[email]
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid authentication credentials")
 
@@ -97,15 +99,18 @@ async def startup_event():
 # ─── Auth & User Routes ─────────────────────────────────────────────────────────
 @app.post("/signup", response_model=User, status_code=status.HTTP_201_CREATED)
 def signup(user: UserCreate):
-    if user.email in fake_users_db:
+    if user.email in users_collection:
         raise HTTPException(status_code=400, detail="Email already taken")
-    fake_users_db[user.email] = {
+    
+    users_collection[user.email] = {
         "email": user.email,
         "hashed_password": get_password_hash(user.password),
         "bio": user.bio,
         "favorite_ship": user.favorite_ship
     }
-    return User(**fake_users_db[user.email])
+
+
+    return User(**users_collection[user.email])
 
 @app.post("/login", response_model=Token)
 def login(form_data: OAuth2PasswordRequestForm = Depends()):
@@ -123,6 +128,8 @@ async def read_profile(current_user: Dict = Depends(get_current_user)):
 async def update_profile(update: User, current_user: Dict = Depends(get_current_user)):
     current_user["bio"] = update.bio
     current_user["favorite_ship"] = update.favorite_ship
+
+    
     return User(**current_user)
 
 # ─── Leaderboard Routes ─────────────────────────────────────────────────────────
