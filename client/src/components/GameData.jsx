@@ -17,6 +17,31 @@ export default function GameData({ isCoOp = false, controls = null }) {
     let score = 0;
     let animationId;
 
+    const saveScore = async () => {
+      try {
+        const token = localStorage.getItem('token'); // Retrieve the user's token
+        const response = await fetch('/api/scores', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`, // Include the token for authentication
+          },
+          body: JSON.stringify({ score }), // Send the score
+        });
+    
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error('Failed to save score:', errorData.detail);
+          alert('Failed to save score: ' + (errorData.detail || 'Unknown error'));
+        } else {
+          console.log('Score saved successfully!');
+        }
+      } catch (err) {
+        console.error('Error saving score:', err);
+        alert('Network error: Could not save score.');
+      }
+    };
+
     // Load ship image
     const shipImg = new Image();
     shipImg.src = '/ship.png';
@@ -173,6 +198,7 @@ export default function GameData({ isCoOp = false, controls = null }) {
         // Check if any player's health is zero
         if (ships.some((ship) => ship.health <= 0)) {
           cancelAnimationFrame(animationId);
+          saveScore();
           ctx.fillStyle = 'red';
           ctx.font = '24px Press Start 2P';
           ctx.fillText('Game Over', canvas.width / 2 - 100, canvas.height / 2);

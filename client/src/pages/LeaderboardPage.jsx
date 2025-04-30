@@ -12,10 +12,21 @@ export default function LeaderboardPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch('http://localhost:8000/scores/leaderboard')
-      .then(res => res.json())
-      .then(setScores)
-      .catch(console.error);
+    const fetchLeaderboard = async () => {
+      try {
+        const res = await fetch('/api/scores/leaderboard');
+        if (res.ok) {
+          const data = await res.json();
+          setScores(data);
+        } else {
+          console.error('Failed to fetch leaderboard');
+        }
+      } catch (err) {
+        console.error('Error fetching leaderboard:', err);
+      }
+    };
+
+    fetchLeaderboard();
   }, []);
 
   return (
