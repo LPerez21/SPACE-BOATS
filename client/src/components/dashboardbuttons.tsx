@@ -38,6 +38,7 @@ const DashboardButtons: React.FC<Props> = () => {
             {dashButtons.map((button) => {
                 return (
                     <Button
+                        key={button.text}
                         variant="outlined"
                         value={button.text}
                         sx={{
