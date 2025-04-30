@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { TextField, Button, Container, Typography, Box, Link } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
+import Logo from '/logo.png';
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({ email: '', password: '' });
@@ -44,7 +45,9 @@ export default function RegisterPage() {
   return (
     <Container maxWidth="sm">
       <Box sx={{ mt: 8, textAlign: 'center' }}>
-        <Typography
+      <img src={Logo} alt="Logo" style={{ width: '500px', marginBottom: '20px' }} />
+        
+        {/* <Typography
           variant="h4"
           gutterBottom
           sx={{
@@ -54,7 +57,7 @@ export default function RegisterPage() {
           }}
         >
           CREATE ACCOUNT
-        </Typography>
+        </Typography> */}
 
         <form onSubmit={handleSubmit}>
           <TextField
@@ -84,11 +87,17 @@ export default function RegisterPage() {
             variant="outlined"
             fullWidth
             sx={{
-              mt: 3,
+              mt: 4,
               fontFamily: 'Press Start 2P',
-              color: 'cyan',
-              borderColor: 'cyan',
-              '&:hover': { backgroundColor: '#111' }
+              color: 'black',
+              fontWeight: 'bold',
+              backgroundColor: 'cyan',
+              boxShadow: '0 0 10px green, 0 0 20px green',
+              transition: '0.3s ease-in-out',
+              '&:hover': {
+                backgroundColor: 'blue', // or any other color
+                boxShadow: '0 0 10px blue, 0 0 20px blue',
+              },
             }}
           >
             REGISTER
@@ -96,19 +105,29 @@ export default function RegisterPage() {
         </form>
 
         <Link
-          component="button"
-          onClick={() => navigate('/login')}
-          underline="hover"
-          sx={{
-            display: 'block',
-            mt: 3,
-            fontFamily: 'Press Start 2P',
-            color: '#ff0066'
-          }}
-        >
-          RETURN TO LOGIN
-        </Link>
-      </Box>
-    </Container>
-  );
-}
+      component="button"
+      onClick={() => navigate('/login')}
+      underline="none"
+      sx={{
+        display: 'block',
+        mt: 3,
+        mx: 'auto',
+        width: 'fit-content',
+        fontFamily: 'Press Start 2P',
+        color: '#ff0066',
+        textShadow: '0 0 6px #ff0066',
+        transition: 'transform 0.2s ease, color 0.2s ease',
+        '&:hover': {
+          color: '#ff99cc',
+          transform: 'scale(1.05)',
+          textShadow: '0 0 10px #ff99cc',
+        }
+      }}
+    >
+      ⬅ RETURN TO LOGIN
+    </Link>
+
+          </Box>
+        </Container>
+      );
+    }
