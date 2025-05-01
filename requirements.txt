@@ -6,3 +6,4 @@ python-jose
 dotenv
 motor
 pydantic[email]
+python-multipart
