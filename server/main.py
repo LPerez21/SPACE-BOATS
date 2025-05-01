@@ -9,18 +9,6 @@ from datetime import datetime, timedelta
 from bson import ObjectId
 from db import test_connection, setup_indexes, users_collection, scores_collection
 
-# Importing utility functions from the 'helpers' module within the 'utils' directory.
-# These functions are related to password handling, JWT token creation, and user authentication.
-
-from utils.helpers import (
-    verify_password,  # Function to verify if the plain password matches the hashed password stored in the database.
-    get_password_hash,  # Function to hash a plain password before storing it in the database.
-    create_access_token,  # Function to create a JWT token for user authentication.
-    authenticate_user,  # Function to authenticate a user by email and password, checking if the credentials are valid.
-    get_current_user  # Function to get the current authenticated user based on a valid JWT token.
-)
-
-
 
 app = FastAPI()
 
@@ -72,6 +60,48 @@ class ScoreOut(BaseModel):
     score: int
     timestamp: datetime
 
+# ─── Helper Functions ────────────────────────────────────────────────────────────
+def verify_password(plain: str, hashed: str) -> bool:
+    return pwd_context.verify(plain, hashed)
+
+def get_password_hash(password: str) -> str:
+    return pwd_context.hash(password)
+
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+    to_encode = data.copy()
+    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+async def get_user(email: str) -> Optional[Dict]:
+    return await users_collection.find_one({"email": email})
+
+async def authenticate_user(email: str, password: str) -> Optional[Dict]:
+    user = await users_collection.find_one({"email": email})
+    if user and verify_password(password, user["hashed_password"]):
+        return user
+    return None
+
+async def get_current_user(token: str = Depends(oauth2_scheme)) -> Dict:
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email: str = payload.get("sub")
+        if not email:
+            raise HTTPException(status_code=401, detail="Invalid authentication credentials")
+        
+        user = await users_collection.find_one({"email": email})
+        if not user:
+            raise HTTPException(status_code=401, detail="Invalid authentication credentials")
+        
+        return user
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid authentication credentials")
+
+@app.on_event("startup")
+async def startup_event():
+    print("Starting the application...")
+    await test_connection()  # Run the test query to verify MongoDB connection
+    await setup_indexes()
 # ─── Auth & User Routes ─────────────────────────────────────────────────────────
 @app.api_route("/", methods=["GET", "HEAD"])
 async def root():
