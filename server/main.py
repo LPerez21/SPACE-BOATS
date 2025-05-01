@@ -103,6 +103,10 @@ async def startup_event():
     await test_connection()  # Run the test query to verify MongoDB connection
     await setup_indexes()
 # ─── Auth & User Routes ─────────────────────────────────────────────────────────
+@app.get("/")
+async def root():
+    return {"message": "Welcome to the Space Boats API!"}
+
 @app.post("/signup", response_model=User, status_code=status.HTTP_201_CREATED)
 async def signup(user: UserCreate):
     existing_user = await users_collection.find_one({"email": user.email})
