@@ -5,3 +5,4 @@ passlib
 python-jose
 dotenv
 motor
+pydantic[email]
