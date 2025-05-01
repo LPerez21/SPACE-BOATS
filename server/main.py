@@ -9,13 +9,17 @@ from datetime import datetime, timedelta
 from bson import ObjectId
 from db import test_connection, setup_indexes, users_collection, scores_collection
 
+# Importing utility functions from the 'helpers' module within the 'utils' directory.
+# These functions are related to password handling, JWT token creation, and user authentication.
+
 from utils.helpers import (
-    verify_password,
-    get_password_hash,
-    create_access_token,
-    authenticate_user,
-    get_current_user
+    verify_password,  # Function to verify if the plain password matches the hashed password stored in the database.
+    get_password_hash,  # Function to hash a plain password before storing it in the database.
+    create_access_token,  # Function to create a JWT token for user authentication.
+    authenticate_user,  # Function to authenticate a user by email and password, checking if the credentials are valid.
+    get_current_user  # Function to get the current authenticated user based on a valid JWT token.
 )
+
 
 
 app = FastAPI()
