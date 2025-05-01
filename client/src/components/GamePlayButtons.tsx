@@ -34,6 +34,7 @@ const GamePlayButtons: React.FC  = () => {
                 gameButtons.map((button) => {
                     return (
                         <Button
+                            key={button.key}
                             variant="outlined"
                             sx={{
                                 mt: 2,
