@@ -103,7 +103,7 @@ async def startup_event():
     await test_connection()  # Run the test query to verify MongoDB connection
     await setup_indexes()
 # ─── Auth & User Routes ─────────────────────────────────────────────────────────
-@app.get("/")
+@app.api_route("/", methods=["GET", "HEAD"])
 async def root():
     return {"message": "Welcome to the Space Boats API!"}
 
