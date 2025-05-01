@@ -140,6 +140,12 @@ async def update_profile(update: User, current_user: Dict = Depends(get_current_
     current_user["bio"] = update.bio
     current_user["favorite_ship"] = update.favorite_ship
 
+    # Persist the changes to the database
+    await users_collection.update_one(
+        {"email": current_user["email"]},
+        {"$set": {"bio": update.bio, "favorite_ship": update.favorite_ship}}
+    )
+
     return User(**current_user)
 
 # ─── Leaderboard Routes ─────────────────────────────────────────────────────────
