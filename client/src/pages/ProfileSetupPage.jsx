@@ -6,27 +6,38 @@ export default function ProfileSetupPage() {
   const [profile, setProfile] = useState({ username:'', bio:'', favorite_ship:'' });
   const navigate = useNavigate();
   const token = localStorage.getItem('token');
+  // const userEmail = localStorage.getItem('userEmail');
 
+  // Check if user is logged in and keep values defined
   useEffect(() => {
-    // Load existing profile
     const fetchProfile = async () => {
       const res = await fetch('http://localhost:8000/profile/me', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
         const data = await res.json();
-        setProfile(data);
+        setProfile({
+
+          username: data.username ?? '',
+          bio: data.bio ?? '',
+          favorite_ship: data.favorite_ship ?? ''
+        });
       }
     };
     fetchProfile();
   }, [token]);
-
+  
+  // Handle input changes
   const handleChange = e => {
     setProfile({ ...profile, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async e => {
     e.preventDefault();
+
+    // const userEmail = localStorage.getItem('userEmail');
+    // const profileData = { ...profile, email: userEmail };
+
     const res = await fetch('http://localhost:8000/profile/me', {
       method: 'PUT',
       headers: {

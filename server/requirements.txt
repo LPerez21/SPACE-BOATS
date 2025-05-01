@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+pymongo
+passlib
+python-jose
+dotenv

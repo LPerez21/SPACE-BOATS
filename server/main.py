@@ -6,6 +6,9 @@ from jose import JWTError, jwt
 from pydantic import BaseModel, EmailStr
 from typing import Optional, Dict, List
 from datetime import datetime, timedelta
+from bson import ObjectId
+from db import test_connection, setup_indexes, users_collection, scores_collection
+
 
 app = FastAPI()
 
@@ -20,8 +23,9 @@ app.add_middleware(
 )
 
 # ─── In-Memory “Databases” ───────────────────────────────────────────────────────
-fake_users_db: Dict[str, Dict] = {}
-scores: List[Dict] = []
+# fake_users_db: Dict[str, Dict] = {}
+# users_collection: Dict[str, Dict] = {}
+# scores: List[Dict] = []
 
 # ─── Security Setup ──────────────────────────────────────────────────────────────
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -40,7 +44,7 @@ class UserCreate(BaseModel):
     favorite_ship: Optional[str] = None
 
 class User(BaseModel):
-    email: EmailStr
+    # email: EmailStr
     bio: Optional[str]
     favorite_ship: Optional[str]
 
@@ -69,11 +73,11 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
-def get_user(email: str) -> Optional[Dict]:
-    return fake_users_db.get(email)
+async def get_user(email: str) -> Optional[Dict]:
+    return await users_collection.find_one({"email": email})
 
-def authenticate_user(email: str, password: str) -> Optional[Dict]:
-    user = get_user(email)
+async def authenticate_user(email: str, password: str) -> Optional[Dict]:
+    user = await users_collection.find_one({"email": email})
     if user and verify_password(password, user["hashed_password"]):
         return user
     return None
@@ -82,28 +86,46 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> Dict:
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         email: str = payload.get("sub")
-        if not email or email not in fake_users_db:
+        if not email:
             raise HTTPException(status_code=401, detail="Invalid authentication credentials")
-        return fake_users_db[email]
+        
+        user = await users_collection.find_one({"email": email})
+        if not user:
+            raise HTTPException(status_code=401, detail="Invalid authentication credentials")
+        
+        return user
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid authentication credentials")
 
+@app.on_event("startup")
+async def startup_event():
+    print("Starting the application...")
+    await test_connection()  # Run the test query to verify MongoDB connection
+    await setup_indexes()
 # ─── Auth & User Routes ─────────────────────────────────────────────────────────
 @app.post("/signup", response_model=User, status_code=status.HTTP_201_CREATED)
-def signup(user: UserCreate):
-    if user.email in fake_users_db:
+async def signup(user: UserCreate):
+    existing_user = await users_collection.find_one({"email": user.email})
+    
+    if existing_user:
         raise HTTPException(status_code=400, detail="Email already taken")
-    fake_users_db[user.email] = {
+    
+    user_doc = {
         "email": user.email,
         "hashed_password": get_password_hash(user.password),
         "bio": user.bio,
         "favorite_ship": user.favorite_ship
     }
-    return User(**fake_users_db[user.email])
+
+    # Insert the user into the database
+    result = await users_collection.insert_one(user_doc)
+    user_doc["_id"] = str(result.inserted_id)  # Convert ObjectId to string for JSON serialization
+
+    return User(bio=user_doc["bio"], favorite_ship=user_doc["favorite_ship"])
 
 @app.post("/login", response_model=Token)
-def login(form_data: OAuth2PasswordRequestForm = Depends()):
-    user = authenticate_user(form_data.username, form_data.password)
+async def login(form_data: OAuth2PasswordRequestForm = Depends()):
+    user = await authenticate_user(form_data.username, form_data.password)
     if not user:
         raise HTTPException(status_code=400, detail="Incorrect email or password")
     token = create_access_token(data={"sub": user["email"]})
@@ -114,23 +136,26 @@ async def read_profile(current_user: Dict = Depends(get_current_user)):
     return User(**current_user)
 
 @app.put("/profile/me", response_model=User)
-async def update_profile(update: UserCreate, current_user: Dict = Depends(get_current_user)):
+async def update_profile(update: User, current_user: Dict = Depends(get_current_user)):
     current_user["bio"] = update.bio
     current_user["favorite_ship"] = update.favorite_ship
+
     return User(**current_user)
 
 # ─── Leaderboard Routes ─────────────────────────────────────────────────────────
 @app.post("/scores", response_model=ScoreOut, status_code=status.HTTP_201_CREATED)
 async def submit_score(payload: ScoreIn, current_user: Dict = Depends(get_current_user)):
-    entry = ScoreOut(
-        email=current_user["email"],
-        score=payload.score,
-        timestamp=datetime.utcnow()
-    )
-    scores.append(entry.dict())
+    entry = {
+        "email": current_user["email"],
+        "score": payload.score,
+        "timestamp": datetime.utcnow()
+    }
+    result = await scores_collection.insert_one(entry)
+    entry["_id"] = str(result.inserted_id)  # Convert ObjectId to string for JSON serialization
     return entry
 
 @app.get("/scores/leaderboard", response_model=List[ScoreOut])
 async def get_leaderboard():
-    top10 = sorted(scores, key=lambda s: s["score"], reverse=True)[:10]
-    return [ScoreOut(**s) for s in top10]
+    cursor = scores_collection.find().sort("score", -1).limit(10)
+    top10 = await cursor.to_list(length=10)
+    return [ScoreOut(**score) for score in top10]
