@@ -60,48 +60,6 @@ class ScoreOut(BaseModel):
     score: int
     timestamp: datetime
 
-# ─── Helper Functions ────────────────────────────────────────────────────────────
-def verify_password(plain: str, hashed: str) -> bool:
-    return pwd_context.verify(plain, hashed)
-
-def get_password_hash(password: str) -> str:
-    return pwd_context.hash(password)
-
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
-    to_encode = data.copy()
-    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
-    to_encode.update({"exp": expire})
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-
-async def get_user(email: str) -> Optional[Dict]:
-    return await users_collection.find_one({"email": email})
-
-async def authenticate_user(email: str, password: str) -> Optional[Dict]:
-    user = await users_collection.find_one({"email": email})
-    if user and verify_password(password, user["hashed_password"]):
-        return user
-    return None
-
-async def get_current_user(token: str = Depends(oauth2_scheme)) -> Dict:
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        email: str = payload.get("sub")
-        if not email:
-            raise HTTPException(status_code=401, detail="Invalid authentication credentials")
-        
-        user = await users_collection.find_one({"email": email})
-        if not user:
-            raise HTTPException(status_code=401, detail="Invalid authentication credentials")
-        
-        return user
-    except JWTError:
-        raise HTTPException(status_code=401, detail="Invalid authentication credentials")
-
-@app.on_event("startup")
-async def startup_event():
-    print("Starting the application...")
-    await test_connection()  # Run the test query to verify MongoDB connection
-    await setup_indexes()
 # ─── Auth & User Routes ─────────────────────────────────────────────────────────
 @app.post("/signup", response_model=User, status_code=status.HTTP_201_CREATED)
 async def signup(user: UserCreate):
