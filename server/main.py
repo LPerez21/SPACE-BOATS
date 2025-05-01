@@ -9,6 +9,14 @@ from datetime import datetime, timedelta
 from bson import ObjectId
 from db import test_connection, setup_indexes, users_collection, scores_collection
 
+from utils.helpers import (
+    verify_password,
+    get_password_hash,
+    create_access_token,
+    authenticate_user,
+    get_current_user
+)
+
 
 app = FastAPI()
 
