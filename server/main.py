@@ -1,3 +1,4 @@
+from pathlib import Path
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -10,18 +11,17 @@ from datetime import datetime, timedelta
 
 from db import test_connection, setup_indexes, users_collection, scores_collection
 
-# ─── App & CORS ────────────────────────────────────────────────────────────────
+# ─── App & CORS ───────────────────────────────────────────────────────────────
 app = FastAPI()
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # tighten in production to your frontend URL
+    allow_origins=["*"],  # lock this down in prod
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# ─── Security & JWT setup ───────────────────────────────────────────────────────
+# ─── JWT / Auth setup ──────────────────────────────────────────────────────────
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 SECRET_KEY = "your-secret-key"
 ALGORITHM = "HS256"
@@ -45,15 +45,15 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> Dict:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         email: str = payload.get("sub")
         if not email:
-            raise
+            raise JWTError()
         user = await users_collection.find_one({"email": email})
         if not user:
-            raise
+            raise JWTError()
         return user
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid authentication credentials")
 
-# ─── Pydantic Schemas ───────────────────────────────────────────────────────────
+# ─── Pydantic Schemas ──────────────────────────────────────────────────────────
 class UserCreate(BaseModel):
     email: EmailStr
     password: str
@@ -76,21 +76,21 @@ class ScoreOut(BaseModel):
     score: int
     timestamp: datetime
 
-# ─── Startup Event ──────────────────────────────────────────────────────────────
+# ─── Startup ──────────────────────────────────────────────────────────────────
 @app.on_event("startup")
 async def on_startup():
     print("Starting application…")
     await test_connection()
     await setup_indexes()
 
-# ─── Auth & User Routes ─────────────────────────────────────────────────────────
+# ─── Auth & User Routes ────────────────────────────────────────────────────────
 @app.post("/api/signup", response_model=User, status_code=status.HTTP_201_CREATED)
 async def signup(user: UserCreate):
     if await users_collection.find_one({"email": user.email}):
         raise HTTPException(status_code=400, detail="Email already taken")
     hashed = get_password_hash(user.password)
     doc = {"email": user.email, "hashed_password": hashed, "bio": user.bio, "favorite_ship": user.favorite_ship}
-    res = await users_collection.insert_one(doc)
+    await users_collection.insert_one(doc)
     return User(bio=user.bio, favorite_ship=user.favorite_ship)
 
 @app.post("/api/login", response_model=Token)
@@ -113,11 +113,11 @@ async def update_profile(update: User, current_user: Dict = Depends(get_current_
     )
     return update
 
-# ─── Leaderboard Routes ─────────────────────────────────────────────────────────
+# ─── Leaderboard Routes ────────────────────────────────────────────────────────
 @app.post("/scores", response_model=ScoreOut, status_code=status.HTTP_201_CREATED)
 async def submit_score(payload: ScoreIn, current_user: Dict = Depends(get_current_user)):
     entry = {"email": current_user["email"], "score": payload.score, "timestamp": datetime.utcnow()}
-    res = await scores_collection.insert_one(entry)
+    await scores_collection.insert_one(entry)
     return ScoreOut(**entry)
 
 @app.get("/scores/leaderboard", response_model=List[ScoreOut])
@@ -125,6 +125,13 @@ async def get_leaderboard():
     docs = await scores_collection.find().sort("score", -1).limit(10).to_list(10)
     return [ScoreOut(**d) for d in docs]
 
-# ─── Serve React ────────────────────────────────────────────────────────────────
-# Any path not caught by /api, /profile, /scores will fall through to your React app
-app.mount("/", StaticFiles(directory="../client/dist", html=True), name="client")
+# ─── Serve React Build ─────────────────────────────────────────────────────────
+# resolve path to client/dist regardless of where uvicorn is run
+BASE_DIR = Path(__file__).resolve().parent            # server/
+STATIC_DIR = BASE_DIR.parent / "client" / "dist"       # project_root/client/dist
+
+app.mount(
+    "/",
+    StaticFiles(directory=str(STATIC_DIR), html=True),
+    name="client"
+)
