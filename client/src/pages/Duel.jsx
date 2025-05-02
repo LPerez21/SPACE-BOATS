@@ -4,11 +4,14 @@ import GameData from '../components/GameData';
 import Logo2 from '/logo2.png'
 import { useNavigate } from 'react-router-dom';
 
-
-
 export default function Duel() {
-    const navigate = useNavigate();
+  const navigate = useNavigate();
   
+  // Retrieve Player 1's selected ship from localStorage
+  const player1ShipIndex = parseInt(localStorage.getItem('selectedShipIndex')) || 0; // Default to 0
+  const player2ShipIndex = 1; // Player 2 always uses ship index 1
+
+
   return (
     <Container maxWidth="lg" sx={{ mt: 4, textAlign: 'center' }}>
           <img 
@@ -43,9 +46,11 @@ export default function Duel() {
           }}
         >
           <GameData
+            isCoOp={false}
             controls={{
               player1: { left: 'KeyA', right: 'KeyD', shoot: 'Space', color: 'lime' },
             }}
+            favoriteShipIndex={[player1ShipIndex]}
           />
         </Box>
 
@@ -60,9 +65,11 @@ export default function Duel() {
           }}
         >
           <GameData
+            isCoOp={false}
             controls={{
-              player1: { left: 'ArrowLeft', right: 'ArrowRight', shoot: 'Slash', color: 'cyan' },
+              player2: { left: 'ArrowLeft', right: 'ArrowRight', shoot: 'Slash', color: 'cyan' },
             }}
+            favoriteShipIndex={[player2ShipIndex]}
           />
         </Box>
       </Box>
