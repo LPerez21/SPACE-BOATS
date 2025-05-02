@@ -2,18 +2,25 @@ import React from 'react';
 import { Container, Typography, Box, Button } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import GameData from '../components/GameData';
+import Logo2 from '/logo2.png'
+
 
 export default function CoOp() {
   const navigate = useNavigate();
 
   return (
     <Container maxWidth="md" sx={{ mt: 4, textAlign: 'center' }}>
+      <img 
+        src={Logo2}
+        alt="Logo"
+        style={{ width: '500px', mt: '-200px', mb: '-100px' }}
+     />
       <Typography
         variant="h4"
         gutterBottom
         sx={{ fontFamily: 'Press Start 2P', color: '#00ffea', textShadow: '0 0 5px #00ffea' }}
       >
-        SPACE BOATS - CO-OP MODE
+        CO-OP MODE
       </Typography>
 
       <Box
