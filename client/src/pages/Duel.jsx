@@ -1,10 +1,14 @@
 import React from 'react';
-import { Container, Typography, Box } from '@mui/material';
+import { Container, Typography, Box, Button } from '@mui/material';
 import GameData from '../components/GameData';
 import Logo2 from '/logo2.png'
+import { useNavigate } from 'react-router-dom';
+
 
 
 export default function Duel() {
+    const navigate = useNavigate();
+  
   return (
     <Container maxWidth="lg" sx={{ mt: 4, textAlign: 'center' }}>
           <img 
@@ -62,6 +66,21 @@ export default function Duel() {
           />
         </Box>
       </Box>
+      
+      <Button
+        variant="outlined"
+        sx={{
+          fontFamily: 'Press Start 2P',
+          color: 'lime',
+          borderColor: 'lime',
+          '&:hover': {backgroundColor: 'cyan',
+            boxShadow: '0 0 10px blue, 0 0 20px blue',
+            color: 'black', },
+        }}
+        onClick={() => navigate('/dashboard')}
+      >
+        BACK TO DASHBOARD
+      </Button>
     </Container>
   );
 }
