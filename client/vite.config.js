@@ -7,7 +7,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'https://www.space-boats.on-render.com',
+        target: 'https://www.space-boats.onrender.com',
         changeOrigin: true,
         // ← this line rewrites "/api/signup" → "/signup"
         rewrite: (path) => path.replace(/^\/api/, '')
