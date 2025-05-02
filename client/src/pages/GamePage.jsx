@@ -5,6 +5,7 @@ import Logo2 from '/logo2.png'
 
 export default function GamePage() {
 
+
   return (
     <Container maxWidth="md" sx={{ mt: 4, textAlign: 'center' }}>
             <img 
