@@ -1,6 +1,8 @@
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 from pydantic import BaseModel, EmailStr
@@ -11,6 +13,8 @@ from db import test_connection, setup_indexes, users_collection, scores_collecti
 
 
 app = FastAPI()
+
+app.mount("/assets", StaticFiles(directory="./build_Files/assets"), name="assets")
 
 # ─── CORS ────────────────────────────────────────────────────────────────────────
 # Allow all origins during development (so you can hit via localhost or LAN IP)
@@ -103,11 +107,15 @@ async def startup_event():
     await test_connection()  # Run the test query to verify MongoDB connection
     await setup_indexes()
 # ─── Auth & User Routes ─────────────────────────────────────────────────────────
-@app.api_route("/", methods=["GET", "HEAD"])
+@app.get("/")   
 async def root():
-    return {"message": "Welcome to the Space Boats API!"}
+    return FileResponse  ("../client/dist/index.html")
 
-@app.post("/signup", response_model=User, status_code=status.HTTP_201_CREATED)
+# @app.api_route ("/{full_path:path}")
+# async def serve_react():
+#     return FileResponse ("../client/dist/index.html")
+
+@app.post("/api/signup", response_model=User, status_code=status.HTTP_201_CREATED)
 async def signup(user: UserCreate):
     existing_user = await users_collection.find_one({"email": user.email})
     
@@ -127,7 +135,7 @@ async def signup(user: UserCreate):
 
     return User(bio=user_doc["bio"], favorite_ship=user_doc["favorite_ship"])
 
-@app.post("/login", response_model=Token)
+@app.post("/api/login", response_model=Token)
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     user = await authenticate_user(form_data.username, form_data.password)
     if not user:
@@ -169,3 +177,12 @@ async def get_leaderboard():
     cursor = scores_collection.find().sort("score", -1).limit(10)
     top10 = await cursor.to_list(length=10)
     return [ScoreOut(**score) for score in top10]
+
+from fastapi.staticfiles import StaticFiles
+
+# serve React’s build/ as the root
+app.mount(
+    "/", 
+    StaticFiles(directory="../client/dist", html=True), 
+    name="client"
+)

@@ -30,3 +30,4 @@ yarn-error.log*
 **/*.py[cod]
 **/venv/
 **/.venv/
+/server/build_Files/*
