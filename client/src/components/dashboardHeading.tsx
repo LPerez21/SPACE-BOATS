@@ -1,5 +1,5 @@
 import * as React from 'react'
-import DashboardButtons from './DashboardButtons'
+import DashboardButtons from './dashboardButtons'
 import { Box, Typography } from '@mui/material'
 
 const DashboardHeading: React.FC = () => {
