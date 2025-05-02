@@ -5,7 +5,7 @@ import {
   Button
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import Leaderboard from '../components/Leaderboard';
+import Leaderboard from '../components/leaderboard';
 import Logo2 from '/logo2.png'
 
 
