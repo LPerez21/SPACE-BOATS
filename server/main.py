@@ -16,7 +16,7 @@ app = FastAPI()
 # ─── CORS ────────────────────────────────────────────────────────────────────────
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # lock this down in production to your frontend domain(s)
+    allow_origins=["*"],      # restrict to your frontend origin(s) in production
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -28,7 +28,7 @@ SECRET_KEY = "your-secret-key"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/login")
 
 # ─── Pydantic Schemas ────────────────────────────────────────────────────────────
 class UserCreate(BaseModel):
@@ -53,7 +53,7 @@ class ScoreOut(BaseModel):
     score: int
     timestamp: datetime
 
-# ─── Helpers ─────────────────────────────────────────────────────────────────────
+# ─── Helper Functions ────────────────────────────────────────────────────────────
 def verify_password(plain: str, hashed: str) -> bool:
     return pwd_context.verify(plain, hashed)
 
@@ -104,8 +104,7 @@ async def signup(user: UserCreate):
         "favorite_ship": user.favorite_ship,
     }
     result = await users_collection.insert_one(user_doc)
-    user_doc["_id"] = str(result.inserted_id)
-    return User(bio=user_doc["bio"], favorite_ship=user_doc["favorite_ship"])
+    return User(bio=user.bio, favorite_ship=user.favorite_ship)
 
 @app.post("/api/login", response_model=Token)
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
@@ -115,11 +114,11 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     token = create_access_token(data={"sub": user["email"]})
     return {"access_token": token, "token_type": "bearer"}
 
-@app.get("/profile/me", response_model=User)
+@app.get("/api/profile/me", response_model=User)
 async def read_profile(current_user: Dict = Depends(get_current_user)):
     return User(**current_user)
 
-@app.put("/profile/me", response_model=User)
+@app.put("/api/profile/me", response_model=User)
 async def update_profile(update: User, current_user: Dict = Depends(get_current_user)):
     await users_collection.update_one(
         {"email": current_user["email"]},
@@ -128,26 +127,24 @@ async def update_profile(update: User, current_user: Dict = Depends(get_current_
     return update
 
 # ─── Leaderboard Routes ─────────────────────────────────────────────────────────
-@app.post("/scores", response_model=ScoreOut, status_code=status.HTTP_201_CREATED)
+@app.post("/api/scores", response_model=ScoreOut, status_code=status.HTTP_201_CREATED)
 async def submit_score(payload: ScoreIn, current_user: Dict = Depends(get_current_user)):
     entry = {
         "email": current_user["email"],
         "score": payload.score,
         "timestamp": datetime.utcnow()
     }
-    result = await scores_collection.insert_one(entry)
-    entry["_id"] = str(result.inserted_id)
+    await scores_collection.insert_one(entry)
     return entry
 
-@app.get("/scores/leaderboard", response_model=List[ScoreOut])
+@app.get("/api/scores/leaderboard", response_model=List[ScoreOut])
 async def get_leaderboard():
     cursor = scores_collection.find().sort("score", -1).limit(10)
     top10 = await cursor.to_list(length=10)
     return [ScoreOut(**score) for score in top10]
 
 # ─── Serve React Frontend ────────────────────────────────────────────────────────
-# All non-API routes will serve index.html from client/dist, and
-# static assets (CSS/JS/images) will be served from that same directory.
+# Any request not matching /api/* will serve your React app
 app.mount(
     "/",
     StaticFiles(directory="../client/dist", html=True),
