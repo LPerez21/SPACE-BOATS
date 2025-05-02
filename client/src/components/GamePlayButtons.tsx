@@ -42,7 +42,9 @@ const GamePlayButtons: React.FC  = () => {
                                 fontFamily: 'Press Start 2P',
                                 color: button.color,
                                 borderColor: button.color,
-                                '&:hover': { backgroundColor: '#111' },
+                                '&:hover': {backgroundColor: 'cyan',
+                                    boxShadow: '0 0 10px blue, 0 0 20px blue',
+                                    color: 'black', },
                             }}
                             onClick={() => handleClick(button.key)}
                         >
