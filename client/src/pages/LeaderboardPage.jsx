@@ -6,6 +6,8 @@ import {
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import Leaderboard from '../components/Leaderboard';
+import Logo2 from '/logo2.png'
+
 
 export default function LeaderboardPage() {
   const [scores, setScores] = useState([]);
