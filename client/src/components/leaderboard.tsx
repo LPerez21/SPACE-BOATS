@@ -23,7 +23,7 @@ const Leaderboard: React.FC<Props> = ({ scores }: Props) => {
                 <Table>
                     <TableHead>
                         <TableRow>
-                            {['Rank', 'Player', 'Score', 'Date'].map((header) => (
+                            {['Rank', 'Pilot', 'Score', 'Date'].map((header) => (
                                 <TableCell
                                     key={header}
                                     sx={{
