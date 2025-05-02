@@ -1,4 +1,4 @@
 import enemyAssets from './enemyAssets';
-import { ship, ship2 } from './playerAssets';
+import playerAssets from './playerAssets';
 
-export { enemyAssets, ship, ship2 };
+export { enemyAssets, playerAssets};
