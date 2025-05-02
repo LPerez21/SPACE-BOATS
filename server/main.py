@@ -88,9 +88,12 @@ async def on_startup():
 async def signup(user: UserCreate):
     if await users_collection.find_one({"email": user.email}):
         raise HTTPException(status_code=400, detail="Email already taken")
-    hashed = get_password_hash(user.password)
-    doc = {"email": user.email, "hashed_password": hashed, "bio": user.bio, "favorite_ship": user.favorite_ship}
-    await users_collection.insert_one(doc)
+    await users_collection.insert_one({
+        "email": user.email,
+        "hashed_password": get_password_hash(user.password),
+        "bio": user.bio,
+        "favorite_ship": user.favorite_ship,
+    })
     return User(bio=user.bio, favorite_ship=user.favorite_ship)
 
 @app.post("/api/login", response_model=Token)
@@ -126,12 +129,11 @@ async def get_leaderboard():
     return [ScoreOut(**d) for d in docs]
 
 # ─── Serve React Build ─────────────────────────────────────────────────────────
-# resolve path to client/dist regardless of where uvicorn is run
-BASE_DIR = Path(__file__).resolve().parent            # server/
-STATIC_DIR = BASE_DIR.parent / "client" / "dist"       # project_root/client/dist
+BASE_DIR   = Path(__file__).resolve().parent            # server/
+STATIC_DIR = BASE_DIR.parent / "client" / "dist"        # project_root/client/dist
 
 app.mount(
     "/",
     StaticFiles(directory=str(STATIC_DIR), html=True),
-    name="client"
+    name="static",
 )
