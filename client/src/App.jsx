@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import NavBar from './components/NavBar';
 
 import RegisterPage from './pages/RegisterPage';
@@ -19,11 +19,15 @@ function App() {
     localStorage.removeItem('token');
     setLoggedIn(false);
   };
+  const hideNavbarRoutes = ['/login', '/register', '/welcome'];
 
   return (
     <Router>
-      <NavBar loggedIn={loggedIn} onLogout={handleLogout} />
-
+        <NavBarWrapper
+        loggedIn={loggedIn}
+        onLogout={handleLogout}
+        hideNavbarRoutes={hideNavbarRoutes}
+      />
       <Routes>
         <Route path="/" element={<Navigate to="/welcome" replace />} />
         <Route path="/welcome" element={<WelcomePage />} />
@@ -81,6 +85,14 @@ function App() {
       </Routes>
     </Router>
   );
+}
+
+function NavBarWrapper({ loggedIn, onLogout, hideNavbarRoutes }) {
+  const location = useLocation(); // Get the current route
+
+  return !hideNavbarRoutes.includes(location.pathname) ? (
+    <NavBar loggedIn={loggedIn} onLogout={onLogout} />
+  ) : null;
 }
 
 export default App;
