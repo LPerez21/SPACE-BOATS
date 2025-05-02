@@ -8,6 +8,11 @@ import Logo2 from '/logo2.png'
 export default function CoOp() {
   const navigate = useNavigate();
 
+  // Retrieve Player 1's selected ship from localStorage
+  const player1ShipIndex = parseInt(localStorage.getItem('selectedShipIndex')) || 0; // Default to 0
+  const player2ShipIndex = 1; // Player 2 always uses ship index 1
+
+
   return (
     <Container maxWidth="md" sx={{ mt: 4, textAlign: 'center' }}>
       <img 
@@ -34,7 +39,14 @@ export default function CoOp() {
         }}
       >
         {/* Mount the GameData component for co-op mode */}
-        <GameData isCoOp={true} />
+        <GameData 
+        isCoOp={true} 
+        controls={{
+          player1: { left: 'KeyA', right: 'KeyD', shoot: 'Space', color: 'lime' },
+          player2: { left: 'ArrowLeft', right: 'ArrowRight', shoot: 'Slash', color: 'cyan' },
+        }} 
+        favoriteShipIndex={[player1ShipIndex, player2ShipIndex]}
+        />
       </Box>
 
       <Button

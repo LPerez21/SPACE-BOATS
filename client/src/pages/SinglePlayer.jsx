@@ -7,6 +7,9 @@ import Logo2 from '/logo2.png'
 export default function SinglePlayer() {
   const navigate = useNavigate();
 
+  // Retrieve Player 1's selected ship from localStorage
+  const player1ShipIndex = parseInt(localStorage.getItem('selectedShipIndex')) || 0; // Default to 0
+
   return (
     <Container maxWidth="md" sx={{ mt: 4, textAlign: 'center' }}>
       <img 
@@ -33,7 +36,13 @@ export default function SinglePlayer() {
         }}
       >
         {/* Mount the GameData component for single-player mode */}
-        <GameData isCoOp={false} />
+        <GameData 
+        isCoOp={false}
+        controls={{
+          player1: { left: 'KeyA', right: 'KeyD', shoot: 'Space', color: 'lime' },
+        }}
+        favoriteShipIndex={[player1ShipIndex]}
+        />
       </Box>
 
       <Button

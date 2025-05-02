@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Container, TextField, Button, Typography, Box } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
+import { playerAssets } from '../../images'; // Assuming playerAssets contains ship images
 
 export default function ProfileSetupPage() {
   const [profile, setProfile] = useState({ username:'', bio:'', favorite_ship:'' });
+  const [selectedShipIndex, setSelectedShipIndex] = useState(0); // State for "Choose Your Ship"
   const navigate = useNavigate();
   const token = localStorage.getItem('token');
   // const userEmail = localStorage.getItem('userEmail');
@@ -17,10 +19,9 @@ export default function ProfileSetupPage() {
       if (res.ok) {
         const data = await res.json();
         setProfile({
-
           username: data.username ?? '',
           bio: data.bio ?? '',
-          favorite_ship: data.favorite_ship ?? ''
+          favorite_ship: data.favorite_ship ?? '',
         });
       }
     };
@@ -30,6 +31,12 @@ export default function ProfileSetupPage() {
   // Handle input changes
   const handleChange = e => {
     setProfile({ ...profile, [e.target.name]: e.target.value });
+  };
+
+  // Handle ship selection for "Choose Your Ship"
+  const handleShipSelect = (index) => {
+    setSelectedShipIndex(index); // Update the selected ship index
+    localStorage.setItem('selectedShipIndex', index); // Save to localStorage
   };
 
   const handleSubmit = async e => {
@@ -65,6 +72,44 @@ export default function ProfileSetupPage() {
         <Typography variant="h4" gutterBottom sx={{ fontFamily: 'Press Start 2P', color: '#ffcc00', textShadow: '0 0 5px #ffcc00' }}>
           SET UP YOUR PROFILE
         </Typography>
+
+        {/* Choose Your Ship Section */}
+        <Typography
+          variant="h6"
+          sx={{ mt: 4, fontFamily: 'Press Start 2P', color: '#00ffcc' }}
+        >
+          Choose Your Ship
+        </Typography>
+        <Box
+          sx={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 2,
+            justifyContent: 'center',
+            mt: 2,
+          }}
+        >
+          {playerAssets.map((ship, index) => (
+            <Box
+              key={index}
+              onClick={() => handleShipSelect(index)}
+              sx={{
+                border: selectedShipIndex === index ? '3px solid #00ffcc' : '3px solid transparent',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                transition: 'transform 0.2s, border-color 0.2s',
+                '&:hover': { transform: 'scale(1.1)' },
+              }}
+            >
+              <img
+                src={ship}
+                alt={`Ship ${index + 1}`}
+                style={{ width: '100px', height: '100px', objectFit: 'contain' }}
+              />
+            </Box>
+          ))}
+        </Box>
+
         <form onSubmit={handleSubmit}>
           <TextField
             fullWidth label="Username" name="username"
