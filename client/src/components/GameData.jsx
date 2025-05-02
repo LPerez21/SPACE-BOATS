@@ -1,11 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import enemy1Img from '/crab.png';
-import enemy2Img from '/jellyfish.png';
-import enemy3Img from '/octopus.png';
-import enemy4Img from '/squid.png';
-import enemy5Img from '/starfish.png';
-import enemy6Img from '/shrimp.png';
-import enemy7Img from '/eel.png';
+import { enemyAssets, ship, ship2 } from '../../images';
 
 export default function GameData({ isCoOp = false, controls = null }) {
   const canvasRef = useRef(null);
@@ -44,10 +38,10 @@ export default function GameData({ isCoOp = false, controls = null }) {
 
     // Load ship image
     const shipImg = new Image();
-    shipImg.src = '/ship.png';
+    shipImg.src = ship;
 
     const ship2Img = new Image();
-    ship2Img.src = '/ship2.png';
+    ship2Img.src = ship2;
 
     let shipImageLoaded = false;
     shipImg.onload = () => {
@@ -58,7 +52,7 @@ export default function GameData({ isCoOp = false, controls = null }) {
     };
 
     // Load enemy images
-    const enemyImages = [enemy1Img, enemy2Img, enemy3Img, enemy4Img, enemy5Img, enemy6Img, enemy7Img].map(src => {
+    const enemyImages = enemyAssets.map(src => {
       const img = new Image();
       img.src = src;
       return img;
