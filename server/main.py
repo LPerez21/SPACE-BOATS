@@ -100,9 +100,16 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> Dict:
 @app.on_event("startup")
 async def startup_event():
     print("Starting the application...")
-    await test_connection()  # Run the test query to verify MongoDB connection
-    await setup_indexes()
+    try:
+        await test_connection()  # Run the test query to verify MongoDB connection
+        print("MongoDB connection successful.")
+        await setup_indexes()
+        print("Indexes setup successful.")
+    except Exception as e:
+        print(f"Error during startup: {e}")
+        raise
 # ─── Auth & User Routes ─────────────────────────────────────────────────────────
+
 @app.api_route("/", methods=["GET", "HEAD"])
 async def root():
     return {"message": "Welcome to the Space Boats API!"}

@@ -25,6 +25,6 @@ async def test_connection():
     try:
         # Attempt to retrieve the server information
         await client.admin.command('ping')
-        print("Successfully connected to MongoDB!")
+        print("Working on MongoDB connection...")
     except Exception as e:
         print("Failed to connect to MongoDB:", e)
