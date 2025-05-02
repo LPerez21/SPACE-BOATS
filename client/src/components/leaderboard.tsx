@@ -61,4 +61,5 @@ const Leaderboard: React.FC<Props> = ({ scores }: Props) => {
     )
 }
 
-export default function Leaderboard(…) { … }
+export default Leaderboard
+
