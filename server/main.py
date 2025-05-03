@@ -15,24 +15,24 @@ from passlib.context import CryptContext
 from jose import JWTError, jwt
 from pydantic import BaseModel, EmailStr
 
-# Use absolute imports so Uvicorn can locate modules
-from server.config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
-from server.db import test_connection, setup_indexes, users_collection, scores_collection
+# relative imports from the same package
+from .config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
+from .db     import test_connection, setup_indexes, users_collection, scores_collection
 
-# ─── App & API Router ─────────────────────────────────────────────────────────────
+# ─── App & Router ────────────────────────────────────────────────────────────────
 app = FastAPI()
 api = APIRouter(prefix="/api")
 
-# ─── CORS (development only) ─────────────────────────────────────────────────────
+# ─── CORS (dev only!) ────────────────────────────────────────────────────────────
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # TODO: restrict in production
+    allow_origins=["*"],      # restrict in production!
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# ─── Security Helpers ────────────────────────────────────────────────────────────
+# ─── Security & JWT Helpers ──────────────────────────────────────────────────────
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/login")
 
@@ -62,29 +62,25 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> Dict:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         email: str = payload.get("sub")
         if not email:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid credentials"
-            )
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                                detail="Invalid credentials")
         user = await users_collection.find_one({"email": email})
         if not user:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid credentials"
-            )
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                                detail="Invalid credentials")
         return user
     except JWTError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid credentials"
-        )
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail="Invalid credentials")
 
-# ─── Startup: Connect to MongoDB & Ensure Indexes ────────────────────────────────
+
+# ─── Startup: Connect & Index ───────────────────────────────────────────────────
 @app.on_event("startup")
 async def on_startup():
-    print("🚀 Starting the application…", file=sys.stderr)
+    print("🚀 Starting application…", file=sys.stderr)
     await test_connection()
     await setup_indexes()
+
 
 # ─── Pydantic Schemas ────────────────────────────────────────────────────────────
 class UserCreate(BaseModel):
@@ -109,18 +105,13 @@ class ScoreOut(BaseModel):
     score: int
     timestamp: datetime
 
-# ─── Auth & User Endpoints ───────────────────────────────────────────────────────
-@api.post(
-    "/signup",
-    response_model=User,
-    status_code=status.HTTP_201_CREATED
-)
+
+# ─── Auth & User Routes ─────────────────────────────────────────────────────────
+@api.post("/signup", response_model=User, status_code=status.HTTP_201_CREATED)
 async def signup(user: UserCreate):
     if await users_collection.find_one({"email": user.email}):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already taken"
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Email already taken")
     hashed = get_password_hash(user.password)
     await users_collection.insert_one({
         "email": user.email,
@@ -132,47 +123,32 @@ async def signup(user: UserCreate):
 
 
 @api.post("/login", response_model=Token)
-async def login(
-    form: OAuth2PasswordRequestForm = Depends()
-):
+async def login(form: OAuth2PasswordRequestForm = Depends()):
     user = await users_collection.find_one({"email": form.username})
     if not user or not verify_password(form.password, user["hashed_password"]):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Incorrect email or password"
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Incorrect email or password")
     token = create_access_token(data={"sub": user["email"]})
     return {"access_token": token, "token_type": "bearer"}
 
 
 @api.get("/profile/me", response_model=User)
-async def read_profile(
-    current_user: Dict = Depends(get_current_user)
-):
+async def read_profile(current_user: Dict = Depends(get_current_user)):
     return User(**current_user)
 
 
 @api.put("/profile/me", response_model=User)
-async def update_profile(
-    update: User,
-    current_user: Dict = Depends(get_current_user)
-):
+async def update_profile(update: User, current_user: Dict = Depends(get_current_user)):
     await users_collection.update_one(
         {"email": current_user["email"]},
         {"$set": {"bio": update.bio, "favorite_ship": update.favorite_ship}}
     )
     return update
 
-# ─── Leaderboard Endpoints ───────────────────────────────────────────────────────
-@api.post(
-    "/scores",
-    response_model=ScoreOut,
-    status_code=status.HTTP_201_CREATED
-)
-async def submit_score(
-    payload: ScoreIn,
-    current_user: Dict = Depends(get_current_user)
-):
+
+# ─── Leaderboard Routes ─────────────────────────────────────────────────────────
+@api.post("/scores", response_model=ScoreOut, status_code=status.HTTP_201_CREATED)
+async def submit_score(payload: ScoreIn, current_user: Dict = Depends(get_current_user)):
     entry = {
         "email": current_user["email"],
         "score": payload.score,
@@ -187,33 +163,24 @@ async def get_leaderboard():
     docs = await scores_collection.find().sort("score", -1).to_list(length=10)
     return [ScoreOut(**d) for d in docs]
 
-# ─── Wire up the API router ───────────────────────────────────────────────────────
+
+# ─── Mount the API ───────────────────────────────────────────────────────────────
 app.include_router(api)
 
-# ─── React SPA Static Files ──────────────────────────────────────────────────────
-BASE_DIR = Path(__file__).resolve().parent
+
+# ─── Serve React SPA ────────────────────────────────────────────────────────────
+BASE_DIR   = Path(__file__).resolve().parent
 REACT_DIST = BASE_DIR.parent / "client" / "dist"
 print("🌐 Serving React from:", REACT_DIST, file=sys.stderr)
+
 if not REACT_DIST.exists():
     raise RuntimeError(f"React build not found at {REACT_DIST}")
 
-# 1) Serve static assets
-app.mount(
-    "/assets",
-    StaticFiles(directory=REACT_DIST / "assets"),
-    name="assets"
-)
-# 2) Serve SPA entry point
-app.mount(
-    "/",
-    StaticFiles(directory=REACT_DIST, html=True),
-    name="client"
-)
-# 3) Fallback for client-side routes (GET & HEAD)
-@app.api_route(
-    "/{full_path:path}",
-    methods=["GET", "HEAD"],
-    include_in_schema=False
-)
+# 1) Static assets (CSS/JS/images):
+app.mount("/assets", StaticFiles(directory=REACT_DIST / "assets"), name="assets")
+# 2) SPA shell (index.html for everything else):
+app.mount("/",      StaticFiles(directory=REACT_DIST, html=True), name="client")
+# 3) Deep‑link fallback (GET & HEAD):
+@app.api_route("/{full_path:path}", methods=["GET","HEAD"], include_in_schema=False)
 async def spa_fallback(full_path: str):
     return FileResponse(REACT_DIST / "index.html")
