@@ -1,9 +1,8 @@
-# Import the MongoClient class from the pymongo library to connect to MongoDB
-from pymongo import MongoClient
+# server/db.py
 
-# Import the MongoDB URI and database name from your config file
-from config import MONGODB_URI, DB_NAME
-from motor.motor_asyncio import AsyncIOMotorClient 
+import sys
+from .config import MONGODB_URI, DB_NAME
+from motor.motor_asyncio import AsyncIOMotorClient
 
 # Create a MongoDB client using the connection URI
 client = AsyncIOMotorClient(MONGODB_URI)
@@ -11,20 +10,27 @@ client = AsyncIOMotorClient(MONGODB_URI)
 # Connect to the specific database using the name from the config
 db = client[DB_NAME]
 
-# Reference the "users" collection in the database
+# Reference the "users" and "scores" collections
 users_collection = db["users"]
-
-# Reference the "scores" collection in the database
 scores_collection = db["scores"]
 
 async def setup_indexes():
+    """
+    Ensure we've got the right indexes for fast lookups.
+    """
+    # index on email for quick user‐based score searches
     await scores_collection.create_index("email")
+    # descending on score for leaderboard sorting
     await scores_collection.create_index([("score", -1)])
 
 async def test_connection():
+    """
+    Ping the server on startup to verify connectivity.
+    """
     try:
-        # Attempt to retrieve the server information
-        await client.admin.command('ping')
-        print("Successfully connected to MongoDB!")
+        await client.admin.command("ping")
+        print("✅ Successfully connected to MongoDB!")
     except Exception as e:
-        print("Failed to connect to MongoDB:", e)
+        print("❌ Failed to connect to MongoDB:", e, file=sys.stderr)
+        # Re‑raise so your app stops if it can’t connect
+        raise
