@@ -1,86 +1,63 @@
 # server/main.py
-
 import sys
+import traceback
 from pathlib import Path
 from datetime import datetime, timedelta
 from typing import Optional, Dict, List
 
-from fastapi import FastAPI, APIRouter, Depends, HTTPException, status
+from fastapi import FastAPI, APIRouter, Depends, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
 
 from passlib.context import CryptContext
-from jose import JWTError, jwt
+from jose import jwt
 from pydantic import BaseModel, EmailStr
 
-# relative imports from the same package
-from .config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
+from .settings import settings
 from .db     import test_connection, setup_indexes, users_collection, scores_collection
+from .utils  import verify_password  # your existing helper
+                                          # (which uses settings.pwd_context)
 
 # ─── App & Router ────────────────────────────────────────────────────────────────
 app = FastAPI()
 api = APIRouter(prefix="/api")
 
-# ─── CORS (dev only!) ────────────────────────────────────────────────────────────
+# ─── CORS ─────────────────────────────────────────────────────────────────────────
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],      # restrict in production!
+    allow_origins=["*"],      # dev only! lock this down in prod
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# ─── Security & JWT Helpers ──────────────────────────────────────────────────────
+# ─── Exception handlers (always JSON!) ────────────────────────────────────────────
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    return JSONResponse({"detail": exc.detail}, status_code=exc.status_code)
+
+@app.exception_handler(Exception)
+async def all_exception_handler(request: Request, exc: Exception):
+    # print full traceback to your logs
+    traceback.print_exc()
+    return JSONResponse({"detail": "Internal server error"}, status_code=500)
+
+# ─── Password & JWT helpers ───────────────────────────────────────────────────────
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/login")
 
-
-def verify_password(plain: str, hashed: str) -> bool:
-    return pwd_context.verify(plain, hashed)
-
-
-def get_password_hash(password: str) -> str:
-    return pwd_context.hash(password)
-
-
-def create_access_token(
-    data: dict,
-    expires_delta: Optional[timedelta] = None
-) -> str:
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
-    expire = datetime.utcnow() + (
-        expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    )
+    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES))
     to_encode.update({"exp": expire})
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
-
-async def get_current_user(token: str = Depends(oauth2_scheme)) -> Dict:
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        email: str = payload.get("sub")
-        if not email:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                                detail="Invalid credentials")
-        user = await users_collection.find_one({"email": email})
-        if not user:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                                detail="Invalid credentials")
-        return user
-    except JWTError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                            detail="Invalid credentials")
-
-
-# ─── Startup: Connect & Index ───────────────────────────────────────────────────
+# ─── Startup Hook ────────────────────────────────────────────────────────────────
 @app.on_event("startup")
 async def on_startup():
     print("🚀 Starting application…", file=sys.stderr)
     await test_connection()
     await setup_indexes()
-
 
 # ─── Pydantic Schemas ────────────────────────────────────────────────────────────
 class UserCreate(BaseModel):
@@ -89,7 +66,8 @@ class UserCreate(BaseModel):
     bio: Optional[str] = None
     favorite_ship: Optional[str] = None
 
-class User(BaseModel):
+class UserOut(BaseModel):
+    email: EmailStr
     bio: Optional[str]
     favorite_ship: Optional[str]
 
@@ -105,81 +83,89 @@ class ScoreOut(BaseModel):
     score: int
     timestamp: datetime
 
+class LoginRequest(BaseModel):
+    username: str
+    password: str
 
-# ─── Auth & User Routes ─────────────────────────────────────────────────────────
-@api.post("/signup", response_model=User, status_code=status.HTTP_201_CREATED)
+# ─── Auth & User Routes ───────────────────────────────────────────────────────────
+@api.post("/signup", response_model=UserOut, status_code=status.HTTP_201_CREATED)
 async def signup(user: UserCreate):
     if await users_collection.find_one({"email": user.email}):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail="Email already taken")
-    hashed = get_password_hash(user.password)
+        raise HTTPException(status_code=400, detail="Email already taken")
+
+    hashed = pwd_context.hash(user.password)
     await users_collection.insert_one({
         "email": user.email,
         "hashed_password": hashed,
         "bio": user.bio,
         "favorite_ship": user.favorite_ship,
     })
-    return User(bio=user.bio, favorite_ship=user.favorite_ship)
-
+    return UserOut(email=user.email, bio=user.bio, favorite_ship=user.favorite_ship)
 
 @api.post("/login", response_model=Token)
-async def login(form: OAuth2PasswordRequestForm = Depends()):
-    user = await users_collection.find_one({"email": form.username})
-    if not user or not verify_password(form.password, user["hashed_password"]):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail="Incorrect email or password")
+async def login(payload: LoginRequest):
+    # log to console so you can see it
+    print("🔥 Login attempt for:", payload.username, file=sys.stderr)
+
+    user = await users_collection.find_one({"email": payload.username})
+    if not user or not pwd_context.verify(payload.password, user["hashed_password"]):
+        raise HTTPException(status_code=400, detail="Incorrect email or password")
+
     token = create_access_token(data={"sub": user["email"]})
     return {"access_token": token, "token_type": "bearer"}
 
+# ─── Protected Profile Routes ───────────────────────────────────────────────────
+from fastapi.security import OAuth2PasswordBearer
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/login")
 
-@api.get("/profile/me", response_model=User)
+async def get_current_user(token: str = Depends(oauth2_scheme)) -> Dict:
+    from jose import JWTError
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        email = payload.get("sub")
+        if not email:
+            raise HTTPException(status_code=401, detail="Invalid credentials")
+        user = await users_collection.find_one({"email": email})
+        if not user:
+            raise HTTPException(status_code=401, detail="Invalid credentials")
+        return user
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+@api.get("/profile/me", response_model=UserOut)
 async def read_profile(current_user: Dict = Depends(get_current_user)):
-    return User(**current_user)
+    return UserOut(email=current_user["email"], bio=current_user.get("bio"), favorite_ship=current_user.get("favorite_ship"))
 
-
-@api.put("/profile/me", response_model=User)
-async def update_profile(update: User, current_user: Dict = Depends(get_current_user)):
+@api.put("/profile/me", response_model=UserOut)
+async def update_profile(update: UserOut, current_user: Dict = Depends(get_current_user)):
     await users_collection.update_one(
         {"email": current_user["email"]},
         {"$set": {"bio": update.bio, "favorite_ship": update.favorite_ship}}
     )
     return update
 
-
 # ─── Leaderboard Routes ─────────────────────────────────────────────────────────
 @api.post("/scores", response_model=ScoreOut, status_code=status.HTTP_201_CREATED)
 async def submit_score(payload: ScoreIn, current_user: Dict = Depends(get_current_user)):
-    entry = {
-        "email": current_user["email"],
-        "score": payload.score,
-        "timestamp": datetime.utcnow()
-    }
+    entry = {"email": current_user["email"], "score": payload.score, "timestamp": datetime.utcnow()}
     await scores_collection.insert_one(entry)
     return ScoreOut(**entry)
-
 
 @api.get("/scores/leaderboard", response_model=List[ScoreOut])
 async def get_leaderboard():
     docs = await scores_collection.find().sort("score", -1).to_list(length=10)
     return [ScoreOut(**d) for d in docs]
 
-
-# ─── Mount the API ───────────────────────────────────────────────────────────────
+# ─── Mount & SPA Fallback ─────────────────────────────────────────────────────────
 app.include_router(api)
 
-
-# ─── Serve React SPA ────────────────────────────────────────────────────────────
 BASE_DIR   = Path(__file__).resolve().parent
 REACT_DIST = BASE_DIR.parent / "client" / "dist"
-print("🌐 Serving React from:", REACT_DIST, file=sys.stderr)
-
 if not REACT_DIST.exists():
     raise RuntimeError(f"React build not found at {REACT_DIST}")
 
-# 1) Static assets (CSS/JS/images):
-# 2) SPA shell (index.html for everything else):
-app.mount("/",      StaticFiles(directory=REACT_DIST, html=True), name="client")
-# 3) Deep‑link fallback (GET & HEAD):
-@app.get("*", include_in_schema=False)
+app.mount("/", StaticFiles(directory=REACT_DIST, html=True), name="client")
+
+@app.get("/{full_path:path}", include_in_schema=False)
 async def spa_fallback(full_path: str):
     return FileResponse(REACT_DIST / "index.html")

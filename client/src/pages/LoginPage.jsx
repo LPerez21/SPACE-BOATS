@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Container, TextField, Button, Typography, Box, Link } from '@mui/material';
+import { Container, TextField, Button, Box, Link } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import Logo from '/logo.png'
+import Logo from '/logo.png';
 
 export default function LoginPage({ onLogin }) {
   const [form, setForm] = useState({ email: '', password: '' });
@@ -14,33 +14,41 @@ export default function LoginPage({ onLogin }) {
   const handleSubmit = async e => {
     e.preventDefault();
 
-    // Build form data
-    const formBody = new URLSearchParams();
-    formBody.append('username', form.email);
-    formBody.append('password', form.password);
-
     try {
       console.log('Logging in with:', form);
       const res = await fetch('/api/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: formBody
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          username: form.email,
+          password: form.password
+        })
       });
 
       console.log('Response status:', res.status);
 
+      if (!res.ok) {
+        const errText = await res.text();
+        console.error('Login failed:', errText);
+        alert(errText || 'Login failed with status ' + res.status);
+        return;
+      }
+
+      // at this point we know the server returned JSON
       const data = await res.json();
       console.log('Response body:', data);
 
-      if (res.ok && data.access_token) {
+      if (data.access_token) {
         localStorage.setItem('token', data.access_token);
         onLogin();
         navigate('/dashboard');
       } else {
-        alert(data.detail || 'Login failed');
+        alert(data.detail || 'Login succeeded but no token returned');
       }
     } catch (err) {
-      console.error('Fetch error:', err);
+      console.error('Network or parse error:', err);
       alert('Network error: could not reach server.');
     }
   };
@@ -53,7 +61,11 @@ export default function LoginPage({ onLogin }) {
   return (
     <Container maxWidth="sm">
       <Box sx={{ mt: 8, textAlign: 'center' }}>
-        <img src={Logo} alt="Logo" style={{ width: '500px', marginBottom: '20px' }} />
+        <img
+          src={Logo}
+          alt="Logo"
+          style={{ width: '500px', marginBottom: '20px' }}
+        />
 
         <form onSubmit={handleSubmit}>
           <TextField
@@ -91,7 +103,7 @@ export default function LoginPage({ onLogin }) {
               boxShadow: '0 0 10px green, 0 0 20px green',
               transition: '0.3s ease-in-out',
               '&:hover': {
-                backgroundColor: 'blue', // or any other color
+                backgroundColor: 'blue',
                 boxShadow: '0 0 10px blue, 0 0 20px blue',
               },
             }}
@@ -116,8 +128,9 @@ export default function LoginPage({ onLogin }) {
               color: '#ff99cc',
               transform: 'scale(1.05)',
               textShadow: '0 0 10px #ff99cc',
-            }
-          }}        >
+            },
+          }}
+        >
           NEW PILOT? REGISTER HERE
         </Link>
 
