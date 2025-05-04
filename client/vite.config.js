@@ -6,15 +6,12 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      // proxy any request starting with /api
       '/api': {
-        target: 'http://127.0.0.1:8000',  // your FastAPI URL
+        target: 'http://127.0.0.1:8000', // your FastAPI server
         changeOrigin: true,
-        secure: false,                    // set to false if you're using HTTP
-        // strip `/api` so /api/login → /login on the backend
-        rewrite: (path) => path.replace(/^\/api/, ''),
+        secure: false,                   // only needed if you’re not using HTTPS locally
+        // no rewrite: /api/login → http://127.0.0.1:8000/api/login
       },
     },
   },
 });
-

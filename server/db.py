@@ -1,14 +1,14 @@
 # server/db.py
 
 import sys
-from .settings import settings
+from .config import MONGODB_URI, DB_NAME
 from motor.motor_asyncio import AsyncIOMotorClient
 
-# Create a MongoDB client using the connection URI from settings
-client = AsyncIOMotorClient(settings.MONGO_URI)
+# Create a MongoDB client using the connection URI from config
+client = AsyncIOMotorClient(MONGODB_URI)
 
-# Connect to the database name from settings
-db = client[settings.DB_NAME]
+# Connect to the database name from config
+db = client[DB_NAME]
 
 # Reference your collections
 users_collection = db["users"]

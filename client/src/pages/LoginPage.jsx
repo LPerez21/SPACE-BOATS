@@ -18,9 +18,7 @@ export default function LoginPage({ onLogin }) {
       console.log('Logging in with:', form);
       const res = await fetch('/api/login', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           username: form.email,
           password: form.password
@@ -29,14 +27,20 @@ export default function LoginPage({ onLogin }) {
 
       console.log('Response status:', res.status);
 
+      // Handle non-2xx responses
       if (!res.ok) {
-        const errText = await res.text();
-        console.error('Login failed:', errText);
-        alert(errText || 'Login failed with status ' + res.status);
+        let errorData;
+        try {
+          errorData = await res.json();
+        } catch {
+          errorData = { detail: await res.text() };
+        }
+        console.error('Login failed:', errorData);
+        alert(errorData.detail || `Login failed (status ${res.status})`);
         return;
       }
 
-      // at this point we know the server returned JSON
+      // Parse successful JSON response
       const data = await res.json();
       console.log('Response body:', data);
 

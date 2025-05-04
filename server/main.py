@@ -1,27 +1,30 @@
 # server/main.py
+
 import sys
 import traceback
 from pathlib import Path
 from datetime import datetime, timedelta
 from typing import Optional, Dict, List
 
-from fastapi import FastAPI, APIRouter, Depends, HTTPException, Request, status
+from fastapi import (
+    FastAPI, APIRouter, Depends,
+    HTTPException, Request, status
+)
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.security import OAuth2PasswordBearer
 
-from passlib.context import CryptContext
-from jose import jwt
+from jose import JWTError, jwt
 from pydantic import BaseModel, EmailStr
 
-from .settings import settings
+# ← Import your secrets and settings from config.py
+from .config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
 from .db     import test_connection, setup_indexes, users_collection, scores_collection
-from .utils  import verify_password  # your existing helper
-                                          # (which uses settings.pwd_context)
+from .utils  import verify_password, get_password_hash
 
 # ─── App & Router ────────────────────────────────────────────────────────────────
 app = FastAPI()
-api = APIRouter(prefix="/api")
 
 # ─── CORS ─────────────────────────────────────────────────────────────────────────
 app.add_middleware(
@@ -39,18 +42,18 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 
 @app.exception_handler(Exception)
 async def all_exception_handler(request: Request, exc: Exception):
-    # print full traceback to your logs
     traceback.print_exc()
     return JSONResponse({"detail": "Internal server error"}, status_code=500)
 
-# ─── Password & JWT helpers ───────────────────────────────────────────────────────
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
+# ─── JWT helper ───────────────────────────────────────────────────────────────────
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
-    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES))
+    expire = datetime.utcnow() + (
+        expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    )
     to_encode.update({"exp": expire})
-    return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+    # ← Use SECRET_KEY and ALGORITHM from config.py
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 # ─── Startup Hook ────────────────────────────────────────────────────────────────
 @app.on_event("startup")
@@ -88,12 +91,12 @@ class LoginRequest(BaseModel):
     password: str
 
 # ─── Auth & User Routes ───────────────────────────────────────────────────────────
-@api.post("/signup", response_model=UserOut, status_code=status.HTTP_201_CREATED)
+@api.post("/api/signup", response_model=UserOut, status_code=status.HTTP_201_CREATED)
 async def signup(user: UserCreate):
     if await users_collection.find_one({"email": user.email}):
         raise HTTPException(status_code=400, detail="Email already taken")
 
-    hashed = pwd_context.hash(user.password)
+    hashed = get_password_hash(user.password)
     await users_collection.insert_one({
         "email": user.email,
         "hashed_password": hashed,
@@ -102,26 +105,23 @@ async def signup(user: UserCreate):
     })
     return UserOut(email=user.email, bio=user.bio, favorite_ship=user.favorite_ship)
 
-@api.post("/login", response_model=Token)
+@api.post("/api/login", response_model=Token)
 async def login(payload: LoginRequest):
-    # log to console so you can see it
-    print("🔥 Login attempt for:", payload.username, file=sys.stderr)
+    print("🔑 Login attempt for:", payload.username, file=sys.stderr)
 
     user = await users_collection.find_one({"email": payload.username})
-    if not user or not pwd_context.verify(payload.password, user["hashed_password"]):
+    if not user or not verify_password(payload.password, user["hashed_password"]):
         raise HTTPException(status_code=400, detail="Incorrect email or password")
 
     token = create_access_token(data={"sub": user["email"]})
     return {"access_token": token, "token_type": "bearer"}
 
 # ─── Protected Profile Routes ───────────────────────────────────────────────────
-from fastapi.security import OAuth2PasswordBearer
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/login")
 
 async def get_current_user(token: str = Depends(oauth2_scheme)) -> Dict:
-    from jose import JWTError
     try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         email = payload.get("sub")
         if not email:
             raise HTTPException(status_code=401, detail="Invalid credentials")
@@ -132,11 +132,15 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> Dict:
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
-@api.get("/profile/me", response_model=UserOut)
+@api.get("/api/profile/me", response_model=UserOut)
 async def read_profile(current_user: Dict = Depends(get_current_user)):
-    return UserOut(email=current_user["email"], bio=current_user.get("bio"), favorite_ship=current_user.get("favorite_ship"))
+    return UserOut(
+        email=current_user["email"],
+        bio=current_user.get("bio"),
+        favorite_ship=current_user.get("favorite_ship")
+    )
 
-@api.put("/profile/me", response_model=UserOut)
+@api.put("/api/profile/me", response_model=UserOut)
 async def update_profile(update: UserOut, current_user: Dict = Depends(get_current_user)):
     await users_collection.update_one(
         {"email": current_user["email"]},
@@ -145,18 +149,22 @@ async def update_profile(update: UserOut, current_user: Dict = Depends(get_curre
     return update
 
 # ─── Leaderboard Routes ─────────────────────────────────────────────────────────
-@api.post("/scores", response_model=ScoreOut, status_code=status.HTTP_201_CREATED)
+@api.post("/api/scores", response_model=ScoreOut, status_code=status.HTTP_201_CREATED)
 async def submit_score(payload: ScoreIn, current_user: Dict = Depends(get_current_user)):
-    entry = {"email": current_user["email"], "score": payload.score, "timestamp": datetime.utcnow()}
+    entry = {
+        "email": current_user["email"],
+        "score": payload.score,
+        "timestamp": datetime.utcnow()
+    }
     await scores_collection.insert_one(entry)
     return ScoreOut(**entry)
 
-@api.get("/scores/leaderboard", response_model=List[ScoreOut])
+@api.get("/api/scores/leaderboard", response_model=List[ScoreOut])
 async def get_leaderboard():
     docs = await scores_collection.find().sort("score", -1).to_list(length=10)
     return [ScoreOut(**d) for d in docs]
 
-# ─── Mount & SPA Fallback ─────────────────────────────────────────────────────────
+# ─── Mount API & SPA ─────────────────────────────────────────────────────────────
 app.include_router(api)
 
 BASE_DIR   = Path(__file__).resolve().parent
