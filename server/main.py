@@ -177,10 +177,9 @@ if not REACT_DIST.exists():
     raise RuntimeError(f"React build not found at {REACT_DIST}")
 
 # 1) Static assets (CSS/JS/images):
-app.mount("/assets", StaticFiles(directory=REACT_DIST / "assets"), name="assets")
 # 2) SPA shell (index.html for everything else):
 app.mount("/",      StaticFiles(directory=REACT_DIST, html=True), name="client")
 # 3) Deep‑link fallback (GET & HEAD):
-@app.api_route("/{full_path:path}", methods=["GET","HEAD"], include_in_schema=False)
+@app.get("*", include_in_schema=False)
 async def spa_fallback(full_path: str):
     return FileResponse(REACT_DIST / "index.html")
