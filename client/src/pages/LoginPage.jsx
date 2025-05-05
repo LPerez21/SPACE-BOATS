@@ -27,23 +27,25 @@ export default function LoginPage({ onLogin }) {
 
       console.log('Response status:', res.status);
 
-      // Handle non-2xx responses
+      // Read the raw body exactly once
+      const raw = await res.text();
+      let data;
+      try {
+        data = JSON.parse(raw);
+      } catch {
+        data = { detail: raw };
+      }
+
+      // Handle error status
       if (!res.ok) {
-        let errorData;
-        try {
-          errorData = await res.json();
-        } catch {
-          errorData = { detail: await res.text() };
-        }
-        console.error('Login failed:', errorData);
-        alert(errorData.detail || `Login failed (status ${res.status})`);
+        console.error('Login failed:', data);
+        alert(data.detail || `Login failed (status ${res.status})`);
         return;
       }
 
-      // Parse successful JSON response
-      const data = await res.json();
       console.log('Response body:', data);
 
+      // Success path
       if (data.access_token) {
         localStorage.setItem('token', data.access_token);
         onLogin();

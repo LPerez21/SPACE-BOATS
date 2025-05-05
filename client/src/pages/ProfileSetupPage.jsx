@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { playerAssets } from '../../images'; // Assuming playerAssets contains ship images
 
 export default function ProfileSetupPage() {
-  const [profile, setProfile] = useState({ username:'', bio:'', favorite_ship:'' });
+  const [profile, setProfile] = useState({ username:'', bio:'', favorite_ship:'', email:'' });
   const [selectedShipIndex, setSelectedShipIndex] = useState(0); // State for "Choose Your Ship"
   const navigate = useNavigate();
   const token = localStorage.getItem('token');
@@ -19,6 +19,7 @@ export default function ProfileSetupPage() {
       if (res.ok) {
         const data = await res.json();
         setProfile({
+          email: data.email,
           username: data.username ?? '',
           bio: data.bio ?? '',
           favorite_ship: data.favorite_ship ?? '',

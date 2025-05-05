@@ -1,9 +1,9 @@
 # server/db.py
 
 import sys
-from .config import MONGODB_URI, DB_NAME
+from config import MONGODB_URI, DB_NAME
 from motor.motor_asyncio import AsyncIOMotorClient
-
+print(f"Connecting to MongoDB at {MONGODB_URI}...")
 # Create a MongoDB client using the connection URI from config
 client = AsyncIOMotorClient(MONGODB_URI)
 
