@@ -8,7 +8,7 @@ load_dotenv()
 
 # MongoDB Configuration
 MONGODB_URI = os.getenv("MONGODB_URI")
-DB_NAME      = os.getenv("DB_NAME", "spaceboats")
+DB_NAME      = os.getenv("DB_NAME", "space-boats-db")
 
 # JWT Configuration
 SECRET_KEY                = os.getenv("SECRET_KEY")

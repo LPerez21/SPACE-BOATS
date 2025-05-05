@@ -25,7 +25,7 @@ from .utils  import verify_password, get_password_hash
 
 # ─── App & Router ────────────────────────────────────────────────────────────────
 app = FastAPI()
-
+api = APIRouter()
 # ─── CORS ─────────────────────────────────────────────────────────────────────────
 app.add_middleware(
     CORSMiddleware,
