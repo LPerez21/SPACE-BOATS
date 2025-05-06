@@ -1,0 +1,18 @@
+# Auto deploy to render when merge with main
+name: Main Deployment
+env: 
+  deploy_url: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+
+# Sets condition for running deploy
+on: 
+  pull_request:
+    types: closed
+    branches:
+      - main # Deploy executes with these conditions from main
+
+jobs:
+  deploy-to-render:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy To Render
+        run: curl "$deploy_url" # If configured right, this should send req to deploy hook, and trigger deployment
