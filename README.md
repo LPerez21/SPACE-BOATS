@@ -35,7 +35,7 @@ This project is licensed under the MIT license.
 ## Questions
 Should you have questions, please reach us via GitHub:
 - [Luis Perez](https://github.com/LPerez21)
-- [Jose Ornelas](https://github.com/jaornelas)
+- [Jose Alfredo Ornelas](https://github.com/jaornelas)
 - [Ernesto Aleman](https://github.com/Bakenavva)
 - [Saher Shaikh](https://github.com/saher-wrld)
 - [Joseph Sanchez](https://github.com/jsanc33)
