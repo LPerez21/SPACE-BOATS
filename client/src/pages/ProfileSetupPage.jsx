@@ -10,10 +10,12 @@ export default function ProfileSetupPage() {
   const token = localStorage.getItem('token');
   // const userEmail = localStorage.getItem('userEmail');
 
+  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+
   // Check if user is logged in and keep values defined
   useEffect(() => {
     const fetchProfile = async () => {
-      const res = await fetch('http://localhost:8000/profile/me', {
+      const res = await fetch(`${BACKEND_URL}/profile/me`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
@@ -26,7 +28,7 @@ export default function ProfileSetupPage() {
       }
     };
     fetchProfile();
-  }, [token]);
+  }, [token, BACKEND_URL]);
   
   // Handle input changes
   const handleChange = e => {
@@ -45,7 +47,7 @@ export default function ProfileSetupPage() {
     // const userEmail = localStorage.getItem('userEmail');
     // const profileData = { ...profile, email: userEmail };
 
-    const res = await fetch('http://localhost:8000/profile/me', {
+    const res = await fetch(`${BACKEND_URL}/profile/me`, {
       method: 'PUT',
       headers: {
         'Content-Type':'application/json',
