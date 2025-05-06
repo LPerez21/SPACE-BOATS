@@ -23,7 +23,7 @@ export default function LoginPage({ onLogin }) {
 
     try {
       console.log('Logging in with:', form);
-      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/login`, {
+      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: formBody
