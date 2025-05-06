@@ -14,7 +14,7 @@ export default function GameData({ isCoOp = false, controls = null, favoriteShip
     const saveScore = async () => {
       try {
         const token = localStorage.getItem('token'); // Retrieve the user's token
-        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/scores`, {
+        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/scores`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
