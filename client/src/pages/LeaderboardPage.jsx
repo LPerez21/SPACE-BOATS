@@ -16,7 +16,7 @@ export default function LeaderboardPage() {
   useEffect(() => {
     const fetchLeaderboard = async () => {
       try {
-        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/scores/leaderboard`);
+        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/scores/leaderboard`);
         if (res.ok) {
           const data = await res.json();
           setScores(data);
