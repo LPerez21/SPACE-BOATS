@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Container } from '@mui/material';
-import Leaderboard from '../components/Leaderboard';
+import Leaderboard from '../components/leaderboard';
 import DashboardHeading from '../components/dashboardHeading';
 
 export default function DashboardPage() {
