@@ -1,27 +1,35 @@
-from passlib.context import CryptContext
-from datetime import datetime, timedelta
-from jose import jwt, JWTError
+from jose import JWTError, jwt  # Import the necessary functions from the jose library for JWT encoding and decoding
+from datetime import datetime, timedelta  # For handling token expiration and time
+from typing import Optional  # For optional type hinting
 
-SECRET_KEY = "space-boat-secret"
+# Secret key for signing the JWT (ensure this is kept secret and secure)
+SECRET_KEY = "your-secret-key"
+# Algorithm used for signing the JWT
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 1 day
+# Default expiration time for the access token (30 minutes)
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
-
-def verify_password(password: str, hashed: str) -> bool:
-    return pwd_context.verify(password, hashed)
-
-def create_access_token(data: dict, expires_delta: timedelta = None):
-    to_encode = data.copy()
-    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
-    to_encode.update({"exp": expire})
+# Function to create a JWT access token
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+    """
+    Creates a JWT access token with the provided data. The token will expire after the given time.
+    If no expiration time is provided, it defaults to 30 minutes.
+    """
+    to_encode = data.copy()  # Copy the input data to avoid modifying the original data
+    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))  # Set the expiration time
+    to_encode.update({"exp": expire})  # Add the expiration time to the payload
+    # Encode the data with the secret key and specified algorithm, returning the encoded JWT
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
-def decode_token(token: str):
+# Function to decode a JWT token and extract its payload
+def decode_access_token(token: str) -> dict:
+    """
+    Decodes the JWT token and returns the payload. Raises an error if the token is invalid.
+    """
     try:
-        return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        # Decode the token using the secret key and algorithm
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload  # Return the decoded payload (typically includes the user's data)
     except JWTError:
-        raise
+        # If an error occurs during decoding (invalid token, expired, etc.), raise an exception
+        raise Exception("Could not validate token")

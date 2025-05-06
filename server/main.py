@@ -103,6 +103,10 @@ async def startup_event():
     await test_connection()  # Run the test query to verify MongoDB connection
     await setup_indexes()
 # ─── Auth & User Routes ─────────────────────────────────────────────────────────
+@app.api_route("/", methods=["GET", "HEAD"])
+async def root():
+    return {"message": "Welcome to the Space Boats API!"}
+
 @app.post("/signup", response_model=User, status_code=status.HTTP_201_CREATED)
 async def signup(user: UserCreate):
     existing_user = await users_collection.find_one({"email": user.email})
@@ -139,6 +143,12 @@ async def read_profile(current_user: Dict = Depends(get_current_user)):
 async def update_profile(update: User, current_user: Dict = Depends(get_current_user)):
     current_user["bio"] = update.bio
     current_user["favorite_ship"] = update.favorite_ship
+
+    # Persist the changes to the database
+    await users_collection.update_one(
+        {"email": current_user["email"]},
+        {"$set": {"bio": update.bio, "favorite_ship": update.favorite_ship}}
+    )
 
     return User(**current_user)
 

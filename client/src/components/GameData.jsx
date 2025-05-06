@@ -1,13 +1,7 @@
 import React, { useRef, useEffect } from 'react';
-import enemy1Img from '/crab.png';
-import enemy2Img from '/jellyfish.png';
-import enemy3Img from '/octopus.png';
-import enemy4Img from '/squid.png';
-import enemy5Img from '/starfish.png';
-import enemy6Img from '/shrimp.png';
-import enemy7Img from '/eel.png';
+import { enemyAssets, playerAssets } from '../../images';
 
-export default function GameData({ isCoOp = false, controls = null }) {
+export default function GameData({ isCoOp = false, controls = null, favoriteShipIndex = [0, 1] }) {
   const canvasRef = useRef(null);
 
   useEffect(() => {
@@ -20,7 +14,7 @@ export default function GameData({ isCoOp = false, controls = null }) {
     const saveScore = async () => {
       try {
         const token = localStorage.getItem('token'); // Retrieve the user's token
-        const response = await fetch('/api/scores', {
+        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/scores`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -42,23 +36,25 @@ export default function GameData({ isCoOp = false, controls = null }) {
       }
     };
 
-    // Load ship image
-    const shipImg = new Image();
-    shipImg.src = '/ship.png';
+    // Load player ship images dynamically
+    const playerImages = playerAssets.map((src) => {
+      const img = new Image();
+      img.src = src;
+      return img;
+    });
 
-    const ship2Img = new Image();
-    ship2Img.src = '/ship2.png';
+    let playerImagesLoadedCount = 0;
+    playerImages.forEach((img) => {
+      img.onload = () => {
+        playerImagesLoadedCount++;
+      };
+    });
 
-    let shipImageLoaded = false;
-    shipImg.onload = () => {
-      shipImageLoaded = true;
-    };
-    ship2Img.onload = () => {
-      shipImageLoaded = true;
-    };
+    // Helper function to check if all player images are loaded
+    const arePlayerImagesLoaded = () => playerImagesLoadedCount === playerImages.length;
 
     // Load enemy images
-    const enemyImages = [enemy1Img, enemy2Img, enemy3Img, enemy4Img, enemy5Img, enemy6Img, enemy7Img].map(src => {
+    const enemyImages = enemyAssets.map(src => {
       const img = new Image();
       img.src = src;
       return img;
@@ -86,34 +82,73 @@ export default function GameData({ isCoOp = false, controls = null }) {
       speed: Math.random() * 0.3 + 0.2,
     }));
 
-    const ships = [
-      {
-        x: canvas.width / 4, // Player 1 starts on the left
-        y: canvas.height - 30,
-        w: 70,
-        h: 70,
-        speed: 7,
-        color: 'lime',
-        keys: { left: false, right: false, shoot: false },
-        controls: controls?.player1 || { left: 'KeyA', right: 'KeyD', shoot: 'Space' }, // Default Player 1 controls
-        bullets: [],
-        health: 100,
-      },
-    ];
+    const ships = [];
 
-    if (isCoOp || controls?.player2) {
-      ships.push({
-        x: (canvas.width * 3) / 4, // Player 2 starts on the right
-        y: canvas.height - 30,
-        w: 70,
-        h: 70,
-        speed: 7,
-        color: 'cyan',
-        keys: { left: false, right: false, shoot: false },
-        controls: controls?.player2 || { left: 'ArrowLeft', right: 'ArrowRight', shoot: 'Slash' }, // Default Player 2 controls
-        bullets: [],
-        health: 100,
-      });
+    // Handle Player 1
+    if (isCoOp) {
+      // Handle Co-Op Mode
+      if (controls?.player1) {
+        ships.push({
+          x: canvas.width / 4, // Player 1 starts on the left
+          y: canvas.height - 30,
+          w: 70,
+          h: 70,
+          speed: 7,
+          color: controls.player1.color || 'lime',
+          keys: { left: false, right: false, shoot: false },
+          controls: controls.player1,
+          bullets: [],
+          health: 100,
+          imgIndex: favoriteShipIndex[0], // Use the first index for Player 1
+        });
+      }
+    
+      if (controls?.player2) {
+        ships.push({
+          x: (canvas.width * 3) / 4, // Player 2 starts on the right
+          y: canvas.height - 30,
+          w: 70,
+          h: 70,
+          speed: 7,
+          color: controls.player2.color || 'cyan',
+          keys: { left: false, right: false, shoot: false },
+          controls: controls.player2,
+          bullets: [],
+          health: 100,
+          imgIndex: favoriteShipIndex[1], // Use the second index for Player 2
+        });
+      }
+    } else {
+      // Handle Single Player Mode
+      if (controls?.player1) {
+        ships.push({
+          x: canvas.width / 4,
+          y: canvas.height - 30,
+          w: 70,
+          h: 70,
+          speed: 7,
+          color: controls.player1.color || 'lime',
+          keys: { left: false, right: false, shoot: false },
+          controls: controls.player1,
+          bullets: [],
+          health: 100,
+          imgIndex: favoriteShipIndex[0],
+        });
+      } else if (controls?.player2) {
+        ships.push({
+          x: (canvas.width * 3) / 4,
+          y: canvas.height - 30,
+          w: 70,
+          h: 70,
+          speed: 7,
+          color: controls.player2.color || 'cyan',
+          keys: { left: false, right: false, shoot: false },
+          controls: controls.player2,
+          bullets: [],
+          health: 100,
+          imgIndex: favoriteShipIndex[0], // Use the first index for Player 2
+        });
+      }
     }
 
     const enemies = [];
@@ -156,7 +191,7 @@ export default function GameData({ isCoOp = false, controls = null }) {
 
       // Display player health
       ships.forEach((ship, index) => {
-        console.log(`P${index + 1} Health: ${ship.health}`); // Debugging
+        // console.log(`P${index + 1} Health: ${ship.health}`); // Debugging
         ctx.fillStyle = 'red';
         ctx.font = '16px Press Start 2P, Arial';
         ctx.fillText(`P${index + 1} Health: ${ship.health}`, 10, 50 + index * 20);
@@ -215,9 +250,9 @@ export default function GameData({ isCoOp = false, controls = null }) {
         if (ship.keys.right) ship.x += ship.speed;
         ship.x = Math.max(ship.w / 2, Math.min(canvas.width - ship.w / 2, ship.x));
 
-        // Draw ship image
-        if (shipImageLoaded) {
-          const shipImage = index === 0 ? shipImg : ship2Img; // Use ship.png for Player 1, ship2.png for Player 2
+        // Draw ship image dynamically
+        if (arePlayerImagesLoaded()) {
+          const shipImage = playerImages[ship.imgIndex]; // Use the appropriate image for the ship
           ctx.drawImage(shipImage, ship.x - ship.w / 2, ship.y - ship.h / 2, ship.w, ship.h);
         } else {
           // Fallback triangle while image loads
@@ -286,7 +321,7 @@ export default function GameData({ isCoOp = false, controls = null }) {
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
     };
-  }, [isCoOp, controls]);
+  }, [isCoOp, controls, favoriteShipIndex]);
 
   return <canvas ref={canvasRef} style={{ width: '100%', height: '100%' }} />;
 }
