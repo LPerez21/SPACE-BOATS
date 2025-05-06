@@ -1,24 +1,13 @@
 # SPACE-BOATS
 
 ## Description
-
+Travel back in time in this retro-inspired shooter arcade game. Pilot your space craft in a futuristic battlefield where fast reflexes and strategic maneuvers are key to surviving intense duels and cooperative challenges. Whether you're competing against friends in Duel mode or teaming up in Co-Op battles, Space Boats delivers a nostalgic yet fresh arcade experience for people of all ages. Prepare for high-speed action, strategic gameplay, and endless excitement in outer space!
 
 ## Table of Contents
 - [Description](#description)
-- [Instructions](#instructions)
 - [Technologies](#technologies)
 - [Links](#links)
 - [Questions](#questions)
-
-## Instructions
-Install dependencies via:
-```bash
-npm i
-```
-Start the program via:
-```bash
-npm start
-```
 
 ## Technologies
 - JavaScript
@@ -29,13 +18,13 @@ npm start
 
 ## Links
 - [GitHub Repo](https://github.com/LPerez21/SPACE-BOATS)
-- [Render]()
+- [Render](https://space-boats-front.onrender.com/)
 
 ## Questions
-Should you have questions, please reach us via:
-- GitHub: [Luis Perez](https://github.com/LPerez21)
-- GitHub: [Jose Ornelas](https://github.com/jaornelas)
-- GitHub: [Ernesto Aleman](https://github.com/Bakenavva)
-- GitHub: [Saher Shaikh](https://github.com/saher-wrld)
-- GitHub: [Joseph Sanchez](https://github.com/jsanc33)
-- GitHub: [Aditya "Deets" Bhonsle](https://github.com/deetsb)
+Should you have questions, please reach us via GitHub:
+- [Luis Perez](https://github.com/LPerez21)
+- [Jose Ornelas](https://github.com/jaornelas)
+- [Ernesto Aleman](https://github.com/Bakenavva)
+- [Saher Shaikh](https://github.com/saher-wrld)
+- [Joseph Sanchez](https://github.com/jsanc33)
+- [Aditya "Deets" Bhonsle](https://github.com/deetsb)
