@@ -1,13 +1,16 @@
 # SPACE-BOATS
 
+![License](https://img.shields.io/badge/License-MIT-blue.svg)
+
 ## Description
 Travel back in time in this retro-inspired shooter arcade game. Pilot your space craft in a futuristic battlefield where fast reflexes and strategic maneuvers are key to surviving intense duels and cooperative challenges. Whether you're competing against friends in Duel mode or teaming up in Co-Op battles, Space Boats delivers a nostalgic yet fresh arcade experience for people of all ages. Prepare for high-speed action, strategic gameplay, and endless excitement in outer space!
-
+<br>    
 ![Space-Boats-Home](./public/Space-Boats-Home.png)
 
 ## Table of Contents
 - [Description](#description)
 - [Technologies](#technologies)
+- [License](#license)
 - [Links](#links)
 - [Questions](#questions)
 
@@ -17,6 +20,13 @@ Travel back in time in this retro-inspired shooter arcade game. Pilot your space
 - Node.js
 - Python
 - React
+- PyMongo
+- Material UI (MUI)
+- Uvicorn
+- FastAPI
+
+## License
+This project is licensed under the MIT license.
 
 ## Links
 - [GitHub Repo](https://github.com/LPerez21/SPACE-BOATS)
