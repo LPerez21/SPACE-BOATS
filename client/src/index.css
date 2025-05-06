@@ -9,7 +9,7 @@ body {
 body {
   margin: 0;
   font-family: 'Press Start 2P', cursive;
-  background-color: #000000;
+  background-color: #000000!important;
   color: #00ffea;
   background-image: radial-gradient(circle, #222 1px, transparent 1px),
                     radial-gradient(circle, #111 1px, transparent 1px);
