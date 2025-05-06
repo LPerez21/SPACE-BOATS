@@ -5,7 +5,7 @@ import {
   Button
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import Leaderboard from '../components/Leaderboard';
+import Leaderboard from '../components/leaderboard';
 import Logo2 from '/logo2.png'
 
 
@@ -16,7 +16,7 @@ export default function LeaderboardPage() {
   useEffect(() => {
     const fetchLeaderboard = async () => {
       try {
-        const res = await fetch('/api/scores/leaderboard');
+        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/scores/leaderboard`);
         if (res.ok) {
           const data = await res.json();
           setScores(data);
