@@ -13,10 +13,12 @@ export default function LeaderboardPage() {
   const [scores, setScores] = useState([]);
   const navigate = useNavigate();
 
+  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "/api"; // Access the environment variable
+
   useEffect(() => {
     const fetchLeaderboard = async () => {
       try {
-        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/scores/leaderboard`);
+        const res = await fetch(`${BACKEND_URL}/scores/leaderboard`);
         if (res.ok) {
           const data = await res.json();
           setScores(data);
