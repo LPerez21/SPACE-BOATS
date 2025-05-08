@@ -10,7 +10,7 @@ export default function ProfileSetupPage() {
   const token = localStorage.getItem('token');
   // const userEmail = localStorage.getItem('userEmail');
 
-  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "/api"; // Access the environment variable  
 
   // Check if user is logged in and keep values defined
   useEffect(() => {
@@ -28,7 +28,7 @@ export default function ProfileSetupPage() {
       }
     };
     fetchProfile();
-  }, [token, BACKEND_URL]);
+  }, [token]);
   
   // Handle input changes
   const handleChange = e => {

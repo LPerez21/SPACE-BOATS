@@ -4,6 +4,8 @@ import { enemyAssets, playerAssets } from '../../images';
 export default function GameData({ isCoOp = false, controls = null, favoriteShipIndex = [0, 1] }) {
   const canvasRef = useRef(null);
 
+  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "/api"; // Access the environment variable
+
   useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
@@ -14,7 +16,7 @@ export default function GameData({ isCoOp = false, controls = null, favoriteShip
     const saveScore = async () => {
       try {
         const token = localStorage.getItem('token'); // Retrieve the user's token
-        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/scores`, {
+        const response = await fetch(`${BACKEND_URL}/scores`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -29,6 +31,7 @@ export default function GameData({ isCoOp = false, controls = null, favoriteShip
           alert('Failed to save score: ' + (errorData.detail || 'Unknown error'));
         } else {
           console.log('Score saved successfully!');
+          alert('Score saved successfully!');
         }
       } catch (err) {
         console.error('Error saving score:', err);
