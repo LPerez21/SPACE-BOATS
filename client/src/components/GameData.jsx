@@ -156,6 +156,8 @@ export default function GameData({ isCoOp = false, controls = null, favoriteShip
 
     const enemies = [];
     const medipacks = [];
+    const miniBosses = [];
+    const miniBossBullets = [];
 
     // Input state
     const onKeyDown = (e) => {
@@ -220,6 +222,120 @@ export default function GameData({ isCoOp = false, controls = null, favoriteShip
           y: -20,
           size: 15,
           speed: 2,
+        });
+      }
+
+      // Defines mini-boss spawn rate
+      if (frame % 900 === 0) {
+        miniBosses.push({
+          x: Math.random() * (canvas.width - 30) + 15,
+          y: (-1 * (canvas.width / 10)) -20, // 20 px above canvas + size of the mini-boss
+          targetY: Math.random() * (canvas.height / 3 - canvas.height / 5) + canvas.height / 5, // Random Y position between 1/5 and 1/3 of the canvas height
+          size: canvas.width / 10,
+          speed: 3,
+          health: 200,
+          direction: Math.random() < 0.5 ? -1 : 1, // Multiply by speed; Assigns 1 (right) or -1 (left)
+          fireCooldown: 300, // Fire every 300 frames
+        });
+      }
+
+      // Draw mini-bosses
+      for (let i = miniBosses.length - 1; i >= 0; i--) {
+        const mb = miniBosses[i];
+
+        // Move mini-boss to position
+        if (mb.y < mb.targetY) {
+          mb.y += (mb.speed / 4);
+        } else {
+          mb.y = mb.targetY; // Set to target Y position
+
+          // Move horizontally
+          mb.x += mb.speed * mb.direction;
+
+          // Bounce off canvas and reverse direction
+          if (mb.x < mb.size / 2 || mb.x > canvas.width - mb.size / 2) {
+            mb.direction *= -1; // Reverse direction by flipping positive to negative & negative to positive
+          }
+        }
+
+        // Handle firing bullets
+        if (mb.fireCooldown <= 0) {
+          const leftBulletX = mb.x - mb.size / 4; // Left bullet position
+          const rightBulletX = mb.x + mb.size / 4; // Right bullet position
+
+          miniBossBullets.push({
+            x: leftBulletX,
+            y: mb.y + mb.size / 2, // Start below the mini-boss
+            size: 8, // Bullet size
+            speed: 2.5, // Bullet speed
+          },
+          {
+            x: rightBulletX,
+            y: mb.y + mb.size / 2, // Start below the mini-boss
+            size: 8, // Bullet size
+            speed: 2.5, // Bullet speed
+          }
+        );
+          mb.fireCooldown = 50; // Reset cooldown
+        } else {
+          mb.fireCooldown--; // Decrement cooldown
+        }
+
+        // Draw mini-boss image
+        ctx.fillStyle = 'red';
+        ctx.fillRect(mb.x - mb.size / 2, mb.y - mb.size / 2, mb.size, mb.size / 2);
+
+        // Update and draw mini-boss bullets
+        for (let i = miniBossBullets.length - 1; i >= 0; i--) {
+          const bullet = miniBossBullets[i];
+
+        // Move bullet downward
+        bullet.y += bullet.speed;
+
+        // Remove bullet if it goes off-screen
+        if (bullet.y > canvas.height) {
+          miniBossBullets.splice(i, 1);
+          continue;
+        }
+
+        // Draw bullet
+        ctx.fillStyle = 'orange';
+        ctx.fillRect(bullet.x - bullet.size / 2, bullet.y - bullet.size / 2, bullet.size, bullet.size);
+
+        // Check for collisions with player ships
+        ships.forEach((ship) => {
+          if (
+            bullet.x > ship.x - ship.w / 2 &&
+            bullet.x < ship.x + ship.w / 2 &&
+            bullet.y > ship.y - ship.h / 2 &&
+            bullet.y < ship.y + ship.h / 2
+          ) {
+            ship.health -= 20; // Reduce player health
+            miniBossBullets.splice(i, 1); // Remove bullet
+              if (ship.health <= 0) {
+                console.log(`Player ${ships.indexOf(ship) + 1} has been defeated!`);
+              }     
+            }
+        });
+      }
+
+        // Check for player bullet collision with mini-boss
+        ships.forEach((ship) => {
+          ship.bullets.forEach((b, bi) => {
+            if (
+              b.x > mb.x - mb.size / 2 &&
+              b.x < mb.x + mb.size / 2 &&
+              b.y > mb.y - mb.size / 2 &&
+              b.y < mb.y + mb.size / 2
+            ) {
+              mb.health -= 20; // Reduce mini-boss health
+              ship.bullets.splice(bi, 1); // Remove bullet
+              if (mb.health <= 0) {
+                miniBosses.splice(i, 1); // Remove mini-boss
+                score += 100; // Increase score
+              }
+            }
+          });
         });
       }
 
