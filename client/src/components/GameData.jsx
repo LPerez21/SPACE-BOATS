@@ -1,5 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { enemyAssets, playerAssets } from '../../images';
+import FredImage from '../../images/Fred.png';
 
 export default function GameData({ isCoOp = false, controls = null, favoriteShipIndex = [0, 1] }) {
   const canvasRef = useRef(null);
@@ -68,6 +69,10 @@ export default function GameData({ isCoOp = false, controls = null, favoriteShip
         enemyImageLoaded = true;
       };
     });
+
+    // Load Fred image (mini-boss)
+    const fredImage = new Image();
+    fredImage.src = FredImage;
 
     // Resize canvas
     const resize = () => {
@@ -236,6 +241,7 @@ export default function GameData({ isCoOp = false, controls = null, favoriteShip
           health: 200,
           direction: Math.random() < 0.5 ? -1 : 1, // Multiply by speed; Assigns 1 (right) or -1 (left)
           fireCooldown: 300, // Fire every 300 frames
+          img: fredImage,
         });
       }
 
@@ -282,8 +288,12 @@ export default function GameData({ isCoOp = false, controls = null, favoriteShip
         }
 
         // Draw mini-boss image
-        ctx.fillStyle = 'red';
-        ctx.fillRect(mb.x - mb.size / 2, mb.y - mb.size / 2, mb.size, mb.size / 2);
+        if (mb.img) {
+          ctx.drawImage(fredImage, mb.x - mb.size / 2, mb.y - mb.size / 2, mb.size, mb.size);
+        } else {
+          ctx.fillStyle = 'red';
+          ctx.fillRect(mb.x - mb.size / 2, mb.y - mb.size / 2, mb.size, mb.size / 2);
+        };
 
         // Update and draw mini-boss bullets
         for (let i = miniBossBullets.length - 1; i >= 0; i--) {
