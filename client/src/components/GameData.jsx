@@ -125,7 +125,7 @@ export default function GameData({ isCoOp = false, controls = null, favoriteShip
       // Handle Single Player Mode
       if (controls?.player1) {
         ships.push({
-          x: canvas.width / 4,
+          x: canvas.width / 2,
           y: canvas.height - 30,
           w: 70,
           h: 70,
@@ -155,6 +155,7 @@ export default function GameData({ isCoOp = false, controls = null, favoriteShip
     }
 
     const enemies = [];
+    const medipacks = [];
 
     // Input state
     const onKeyDown = (e) => {
@@ -200,6 +201,7 @@ export default function GameData({ isCoOp = false, controls = null, favoriteShip
         ctx.fillText(`P${index + 1} Health: ${ship.health}`, 10, 50 + index * 20);
       });
 
+      // Defines enemy spawn rate
       if (frame % 90 === 0) {
         const typeIndex = Math.floor(Math.random() * enemyImages.length);
         enemies.push({
@@ -208,6 +210,16 @@ export default function GameData({ isCoOp = false, controls = null, favoriteShip
           size: 40, // TODO: Adjust to 70 if hitbox doesn't match png 
           speed: Math.random() * 1 + 1,
           img: enemyImages[typeIndex],
+        });
+      }
+
+      // Defines medipack spawn rate
+      if (frame % 600 === 0) {
+        medipacks.push({
+          x: Math.random() * (canvas.width - 30) + 15,
+          y: -20,
+          size: 15,
+          speed: 2,
         });
       }
 
@@ -232,6 +244,30 @@ export default function GameData({ isCoOp = false, controls = null, favoriteShip
             enemies.splice(i, 1); // Remove enemy
           }
         });
+
+        // Update & draw medipacks
+        for (let j = medipacks.length - 1; j >= 0; j--) {
+          const m = medipacks[j];
+          m.y += m.speed;
+
+          // Draw medipack
+          ctx.fillStyle = 'green';
+          ctx.fillRect(m.x - m.size / 2, m.y - m.size / 2, m.size, m.size);
+
+          // Check for collisions with ships
+          ships.forEach((ship) => {
+            if (
+              m.x > ship.x - ship.w / 2 &&
+              m.x < ship.x + ship.w / 2 &&
+              m.y > ship.y - ship.h / 2 &&
+              m.y < ship.y + ship.h / 2
+            ) {
+              ship.health += 30; // Increase ship health
+              if (ship.health > 100) ship.health = 100; // Cap health at 100
+              medipacks.splice(j, 1); // Remove medipack
+            }
+          });
+        }
 
         // Check if any player's health is zero
         if (ships.some((ship) => ship.health <= 0)) {

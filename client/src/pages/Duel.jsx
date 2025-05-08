@@ -5,14 +5,16 @@ import Logo2 from '/logo2.png'
 import { useNavigate } from 'react-router-dom';
 import keySound from '../assets/sounds/keyboard.mp3';
 import KeyboardSoundListener from '../components/KeyboardSoundListener';
+import playerAssets from '../../images/playerAssets';
 
 export default function Duel() {
   const navigate = useNavigate();
 
   // Retrieve Player 1's selected ship from localStorage
   const player1ShipIndex = parseInt(localStorage.getItem('selectedShipIndex')) || 0; // Default to 0
-  const player2ShipIndex = 1; // Player 2 always uses ship index 1
 
+  // Randomly assign a ship to Player 2
+  const player2ShipIndex = Math.floor(Math.random() * playerAssets.length);
 
   return (
     <KeyboardSoundListener sound={keySound} validKeys={['Space', 'Slash']}>
