@@ -289,35 +289,35 @@ export default function GameData({ isCoOp = false, controls = null, favoriteShip
         for (let i = miniBossBullets.length - 1; i >= 0; i--) {
           const bullet = miniBossBullets[i];
 
-        // Move bullet downward
-        bullet.y += bullet.speed;
+          // Move bullet downward
+          bullet.y += bullet.speed;
 
-        // Remove bullet if it goes off-screen
-        if (bullet.y > canvas.height) {
-          miniBossBullets.splice(i, 1);
-          continue;
+          // Remove bullet if it goes off-screen
+          if (bullet.y > canvas.height) {
+            miniBossBullets.splice(i, 1);
+            continue;
+          }
+
+          // Draw bullet
+          ctx.fillStyle = 'orange';
+          ctx.fillRect(bullet.x - bullet.size / 2, bullet.y - bullet.size / 2, bullet.size, bullet.size);
+
+          // Check for collisions with player ships
+          ships.forEach((ship) => {
+            if (
+              bullet.x > ship.x - ship.w / 2 &&
+              bullet.x < ship.x + ship.w / 2 &&
+              bullet.y > ship.y - ship.h / 2 &&
+              bullet.y < ship.y + ship.h / 2
+            ) {
+              ship.health -= 20; // Reduce player health
+              miniBossBullets.splice(i, 1); // Remove bullet
+                if (ship.health <= 0) {
+                  console.log(`Player ${ships.indexOf(ship) + 1} has been defeated!`);
+                }     
+              }
+          });
         }
-
-        // Draw bullet
-        ctx.fillStyle = 'orange';
-        ctx.fillRect(bullet.x - bullet.size / 2, bullet.y - bullet.size / 2, bullet.size, bullet.size);
-
-        // Check for collisions with player ships
-        ships.forEach((ship) => {
-          if (
-            bullet.x > ship.x - ship.w / 2 &&
-            bullet.x < ship.x + ship.w / 2 &&
-            bullet.y > ship.y - ship.h / 2 &&
-            bullet.y < ship.y + ship.h / 2
-          ) {
-            ship.health -= 20; // Reduce player health
-            miniBossBullets.splice(i, 1); // Remove bullet
-              if (ship.health <= 0) {
-                console.log(`Player ${ships.indexOf(ship) + 1} has been defeated!`);
-              }     
-            }
-        });
-      }
 
         // Check for player bullet collision with mini-boss
         ships.forEach((ship) => {
