@@ -9,6 +9,8 @@ export default function LoginPage({ onLogin }) {
   const [form, setForm] = useState({ email: '', password: '' });
   const navigate = useNavigate();
 
+  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "/api"; // Access the environment variable
+
   const handleChange = e => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
@@ -23,7 +25,7 @@ export default function LoginPage({ onLogin }) {
 
     try {
       console.log('Logging in with:', form);
-      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/login`, {
+      const res = await fetch(`${BACKEND_URL}/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: formBody

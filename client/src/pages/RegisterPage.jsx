@@ -9,6 +9,8 @@ export default function RegisterPage() {
   const [formData, setFormData] = useState({ email: '', password: '' });
   const navigate = useNavigate();
 
+  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "/api"; // Access the environment variable
+
   const handleChange = e => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -19,7 +21,7 @@ export default function RegisterPage() {
     try {
       console.log('Registering with:', formData);
 
-      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/signup`, {
+      const res = await fetch(`${BACKEND_URL}/signup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),

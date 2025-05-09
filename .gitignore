@@ -13,6 +13,7 @@ Thumbs.db
 # environment files
 .env
 *.env
+.env.*
 
 # Logs
 logs/
